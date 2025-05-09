@@ -1,0 +1,28 @@
+{
+  "name": "@repo/utils",
+  "version": "1.0.0",
+  "main": "",
+  "types": "",
+  "exports": {
+    "./*": {
+      "import": "./dist/*.js",
+      "require": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "config": "^3.3.12",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/config": "^3.3.5",
+    "@types/jsonwebtoken": "^9.0.9",
+    "typescript": "^5.8.3"
+  }
+}

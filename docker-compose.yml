@@ -1,0 +1,120 @@
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: apps/user-service/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./apps/user-service/.env
+    container_name: user-service
+    ports:
+      - "5001:5001"
+    depends_on:
+      - rabbitmq
+      - postgres
+    networks:
+      - app-network
+
+  blog-service:
+    build:
+      context: .
+      dockerfile: apps/blog-service/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./apps/blog-service/.env
+    container_name: blog-service
+    ports:
+      - "5002:5002"
+    depends_on:
+      - rabbitmq
+      - postgres
+    networks:
+      - app-network
+
+  email-service:
+    build:
+      context: .
+      dockerfile: apps/email-service/Dockerfile
+    container_name: email-service
+    ports:
+      - "5003:5003"
+    depends_on:
+      - rabbitmq
+    env_file:
+      - ./apps/email-service/.env.dev
+    networks:
+      - app-network
+
+  api-gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8081:80"
+    depends_on:
+      - user-service
+      - blog-service
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-dev
+    restart: always
+    environment:
+      POSTGRES_USER: devuser
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: devdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisDB:/data
+    networks:
+      - app-network
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin-dev
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@local.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+volumes:
+  pgdata-dev:
+  redisDB:
+
+networks:
+  app-network:
+    driver: bridge
