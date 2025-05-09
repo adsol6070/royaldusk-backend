@@ -42,7 +42,7 @@ app.all("*", (req: Request, res: Response, next: NextFunction) => {
 app.use(errorHandler);
 
 app.listen(PORT, async () => {
-  console.log(`User Service running on port ${PORT}`);
+  console.log(`User Service runningg on port ${PORT}`);
   await rabbitMQ.connect();
 });
 
