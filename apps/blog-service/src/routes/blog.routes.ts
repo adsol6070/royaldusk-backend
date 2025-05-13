@@ -1,8 +1,5 @@
 import { Router } from "express";
 import { blogController } from "../controllers";
-import { validateRequest } from "../middlewares/validateRequest";
-import { uploadImageMiddleware } from "../middlewares/uploadImageMiddleware";
-uploadImageMiddleware;
 import {
   validateCreateBlog,
   validateUpdateBlog,
@@ -11,11 +8,18 @@ import {
   validateCategoryIDParam,
 } from "../validations/blog.validation";
 
+import { createUploadImageMiddleware } from "@repo/middlewares/uploadImageMiddleware";
+import { validateRequest } from "@repo/middlewares/validateRequest"
+
 const router = Router();
+
+const upload = createUploadImageMiddleware({
+  destinationFolder: "blog-thumbnails",
+});
 
 router.post(
   "/",
-  uploadImageMiddleware.single("thumbnail"),
+  upload.single("thumbnail"),
   validateCreateBlog,
   validateRequest,
   blogController.createBlog
@@ -46,7 +50,7 @@ router.get(
 
 router.patch(
   "/:id",
-  uploadImageMiddleware.single("thumbnail"),
+  upload.single("thumbnail"),
   validateUpdateBlog,
   validateRequest,
   blogController.updateBlog

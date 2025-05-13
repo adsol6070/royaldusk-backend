@@ -1,5 +1,5 @@
 {
-  "name": "blog-service",
+  "name": "package-service",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -11,10 +11,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@repo/utils": "*",
-    "@repo/middlewares": "*",
     "@prisma/client": "^6.6.0",
+    "@repo/middlewares": "*",
+    "@repo/utils": "*",
     "axios": "^1.9.0",
+    "config": "^3.3.12",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

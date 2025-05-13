@@ -1,4 +1,4 @@
-// require("dotenv").config();
+require("dotenv").config();
 import express, { NextFunction, Request, Response } from "express";
 import morgan from "morgan";
 import cors from "cors";
@@ -7,7 +7,7 @@ import config from "config";
 import unifiedRoutes from "./routes";
 import { rabbitMQ } from "./services/rabbitmq.service";
 import { ApiError } from "@repo/utils/ApiError";
-import errorHandler from "./middlewares/errorHandler";
+import { errorHandler } from "@repo/middlewares/errorHandler";
 
 const app = express();
 const PORT = process.env.PORT || "5001";
@@ -22,7 +22,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: [config.get<string>("origin")],
+    origin: config.get<string>("origin"),
     credentials: true,
   })
 );

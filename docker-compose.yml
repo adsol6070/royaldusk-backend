@@ -47,6 +47,23 @@ services:
     networks:
       - app-network
 
+  package-service:
+    build:
+      context: .
+      dockerfile: apps/package-service/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./apps/package-service/.env
+    container_name: package-service
+    ports:
+      - "5004:5004"
+    depends_on:
+      - rabbitmq
+      - postgres
+    networks:
+      - app-network
+
   api-gateway:
     build:
       context: .
