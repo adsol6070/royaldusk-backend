@@ -67,3 +67,141 @@ model Category {
   name  String
   blogs Blog[]
 }
+
+model PackageCategory {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  packages  Package[]
+}
+
+model PackageFeature {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  packageFeatures PackageFeatureOnPackage[]
+}
+
+model PackageItinerary {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  packageItineraries PackageItineraryOnPackage[]
+}
+
+model PackageService {
+  id        String    @id @default(uuid())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  packageServices PackageServiceOnPackage[]
+}
+
+model PackagePolicy {
+  id                  String   @id @default(uuid())
+  bookingPolicy       String
+  visaDetail          String
+  cancellationPolicy  String
+  paymentTerms        String
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  packages            Package[]
+}
+
+model Package {
+  id                  String    @id @default(uuid())
+  name                String
+  slug                String
+  description         String
+  review              Int  @default(0)
+  currency            String @default("AED")
+  importantInfo       String
+  location            String
+  price               Float
+  duration            String
+  availability        Availability
+  hotels              String
+  imageUrl            String
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  categoryID          String
+  category            PackageCategory @relation(fields: [categoryID], references: [id])
+
+  policyID            String?
+  policy              PackagePolicy?  @relation(fields: [policyID], references: [id])
+
+  features            PackageFeatureOnPackage[]
+  itineraries         PackageItineraryOnPackage[]
+  services            PackageServiceOnPackage[]
+  enquiries           Enquiry[]
+}
+
+model PackageFeatureOnPackage {
+  packageId String
+  featureId String
+
+  package   Package        @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  feature   PackageFeature @relation(fields: [featureId], references: [id])
+
+  @@id([packageId, featureId])
+}
+
+model PackageItineraryOnPackage {
+  packageId   String
+  itineraryId String
+
+  package     Package          @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  itinerary   PackageItinerary @relation(fields: [itineraryId], references: [id])
+
+  @@id([packageId, itineraryId])
+}
+
+model PackageServiceOnPackage {
+  packageId String
+  serviceId String
+  type      ServiceType
+
+  package   Package        @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  service   PackageService @relation(fields: [serviceId], references: [id])
+
+  @@id([packageId, serviceId])
+}
+
+model Enquiry {
+  id           String   @id @default(uuid())
+  name         String
+  email        String
+  isdCode      String
+  mobile       String
+  dob          DateTime
+  adults       Int
+  children     Int
+  flightBooked String
+  remarks      String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  packageID    String
+  package      Package  @relation(fields: [packageID], references: [id], onDelete: Cascade)
+}
+
+enum Availability {
+  Available
+  SoldOut
+  ComingSoon
+}
+
+enum ServiceType {
+  Inclusion
+  Exclusion
+}

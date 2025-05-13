@@ -1,7 +1,5 @@
 import { Router } from "express";
 import { blogController } from "../controllers";
-import { validateRequest } from "../middlewares/validateRequest";
-import { uploadImageMiddleware } from "../middlewares/uploadImageMiddleware";
 import {
   validateCreateBlog,
   validateUpdateBlog,
@@ -11,6 +9,9 @@ import {
 } from "../validations/blog.validation";
 import { deserializeUser, requireUser } from "@repo/auth-middleware";
 import config from "config";
+
+import { createUploadImageMiddleware } from "@repo/middlewares/uploadImageMiddleware";
+import { validateRequest } from "@repo/middlewares/validateRequest";
 
 const router = Router();
 
@@ -27,12 +28,16 @@ const publicKey = Buffer.from(
   "base64"
 ).toString("ascii");
 
+const upload = createUploadImageMiddleware({
+  destinationFolder: "blog-thumbnails",
+});
+
 // Protected routes
 router.post(
   "/",
   deserializeUser(excludedFields, publicKey),
   requireUser,
-  uploadImageMiddleware.single("thumbnail"),
+  upload.single("thumbnail"),
   validateCreateBlog,
   validateRequest,
   blogController.createBlog
@@ -42,7 +47,7 @@ router.patch(
   "/:id",
   deserializeUser(excludedFields, publicKey),
   requireUser,
-  uploadImageMiddleware.single("thumbnail"),
+  upload.single("thumbnail"),
   validateUpdateBlog,
   validateRequest,
   blogController.updateBlog

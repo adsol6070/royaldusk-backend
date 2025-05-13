@@ -7,7 +7,7 @@ import config from "config";
 import unifiedRoutes from "./routes";
 import { rabbitMQ } from "./services/rabbitmq.service";
 import { ApiError } from "@repo/utils/ApiError";
-import errorHandler from "./middlewares/errorHandler";
+import { errorHandler } from "@repo/middlewares/errorHandler";
 
 const app = express();
 const PORT = process.env.PORT || "5001";

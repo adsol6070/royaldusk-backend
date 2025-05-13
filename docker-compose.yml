@@ -31,7 +31,7 @@ services:
       - rabbitmq
       - postgres
     volumes:
-      - blog-thumbnails:/app/apps/blog-service/uploads/blog-thumbnails  
+      - blog-thumbnails:/app/apps/blog-service/uploads/blog-thumbnails
     networks:
       - app-network
 
@@ -46,6 +46,25 @@ services:
       - rabbitmq
     env_file:
       - ./apps/email-service/.env.dev
+    networks:
+      - app-network
+
+  package-service:
+    build:
+      context: .
+      dockerfile: apps/package-service/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./apps/package-service/.env
+    container_name: package-service
+    ports:
+      - "5004:5004"
+    depends_on:
+      - rabbitmq
+      - postgres
+    volumes:
+      - package-thumbnails:/app/apps/package-service/uploads/package-thumbnails
     networks:
       - app-network
 
@@ -117,6 +136,7 @@ volumes:
   pgdata-dev:
   redisDB:
   blog-thumbnails:
+  package-thumbnails:
 
 networks:
   app-network:

@@ -11,9 +11,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@repo/utils": "*",
+    "@repo/middlewares": "*",
     "@prisma/client": "^6.6.0",
     "@repo/auth-middleware": "^1.0.0",
-    "@repo/utils": "*",
     "amqplib": "^0.10.5",
     "bcryptjs": "^2.4.3",
     "config": "^3.3.12",

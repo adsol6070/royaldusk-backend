@@ -47,7 +47,7 @@ const getBlogByID = async (req: Request, res: Response): Promise<void> => {
     });
     return;
   }
-
+  
   res.status(200).json({
     success: true,
     message: "Blog retrieved successfully",
