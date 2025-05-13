@@ -1,7 +1,4 @@
 import { prisma, Prisma, Blog } from "@repo/database";
-import axios from "axios";
-
-const USER_SERVICE_URL = "http://localhost:4000/users/";
 
 export const BlogService = {
   createBlog: async (data: Prisma.BlogCreateInput) => {
@@ -11,35 +8,57 @@ export const BlogService = {
   getAllBlogs: async () => {
     return await prisma.blog.findMany({
       orderBy: { createdAt: "desc" },
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
   },
 
   getBlogByID: async (where: Prisma.BlogWhereUniqueInput) => {
     return await prisma.blog.findUnique({
       where,
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        category: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
     });
   },
 
   getBlogs: async (filters: Prisma.BlogWhereInput = {}): Promise<Blog[]> => {
-    const blogs = await prisma.blog.findMany({
+    return await prisma.blog.findMany({
       where: filters,
       orderBy: { createdAt: "desc" },
       include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         category: true,
       },
     });
-
-    const blogsWithAuthors = await Promise.all(
-      blogs.map(async (blog) => {
-        const author = await axios.get(`${USER_SERVICE_URL}${blog.authorID}`);
-        return {
-          ...blog,
-          author: author.data,
-        };
-      })
-    );
-
-    return blogsWithAuthors;
   },
 
   updateBlog: async (id: string, data: Prisma.BlogUpdateInput) => {

@@ -1,12 +1,31 @@
 import { Request, Response } from "express";
 import { BlogService } from "../services/blog.service";
 import { asyncHandler } from "@repo/utils/asyncHandler";
+import { ApiError } from "@repo/utils/ApiError";
+import path from "path";
+import fs from "fs";
 
 const createBlog = async (req: Request, res: Response): Promise<void> => {
-  const image = req.file?.path || "";
+  const filename = req.file?.filename || "";
+  const image = filename
+    ? `http://localhost:8081/blog-service/uploads/blog-thumbnails/${filename}`
+    : "";
+
+  let parsedTags: string[] = [];
+
+  if (Array.isArray(req.body.tags)) {
+    parsedTags = req.body.tags;
+  } else if (typeof req.body.tags === "string") {
+    try {
+      parsedTags = JSON.parse(req.body.tags);
+    } catch (err) {
+      throw new ApiError(400, "Invalid format for tags");
+    }
+  }
 
   const blogData = {
     ...req.body,
+    tags: parsedTags,
     publishedAt: req.body.publishedAt ? new Date(req.body.publishedAt) : null,
     thumbnail: image,
   };
@@ -76,28 +95,83 @@ const updateBlog = async (
   res: Response
 ): Promise<void> => {
   const blogID = req.params.id;
-  const tags = req.body.tags ? JSON.parse(req.body.tags) : [];
+
+  const existingBlog = await BlogService.getBlogByID({ id: blogID });
+  if (!existingBlog) {
+    throw new ApiError(404, "Blog not found");
+  }
 
   const updatedData: any = {
     ...req.body,
     updatedAt: new Date(),
-    tags,
   };
 
-  if (req.file?.path) {
-    updatedData.thumbnail = req.file.path;
+  if (req.body.tags) {
+    if (Array.isArray(req.body.tags)) {
+      updatedData.tags = req.body.tags;
+    } else if (typeof req.body.tags === "string") {
+      try {
+        updatedData.tags = JSON.parse(req.body.tags);
+      } catch (err) {
+        throw new ApiError(400, "Invalid format for tags");
+      }
+    }
   }
 
-  const blog = await BlogService.updateBlog(blogID, updatedData);
+  if (req.file?.filename) {
+    const oldThumbnail = existingBlog.thumbnail;
+    const oldFilename = oldThumbnail?.split("/").pop();
+
+    updatedData.thumbnail = `http://localhost:8081/blog-service/uploads/blog-thumbnails/${req.file.filename}`;
+
+    if (oldFilename) {
+      const oldFilePath = path.join(
+        __dirname,
+        "../../uploads/blog-thumbnails",
+        oldFilename
+      );
+
+      fs.unlink(oldFilePath, (err) => {
+        if (err) {
+          console.error("Failed to delete old image:", err.message);
+        }
+      });
+    }
+  }
+
+  const updatedBlog = await BlogService.updateBlog(blogID, updatedData);
   res.status(200).json({
     success: true,
     message: "Blog updated successfully",
-    data: blog,
+    data: updatedBlog,
   });
 };
 
 const deleteBlog = async (req: Request, res: Response): Promise<void> => {
+  const blog = await BlogService.getBlogByID({ id: req.params.id });
+  if (!blog) {
+    throw new ApiError(404, "Blog not found");
+  }
+
+  const thumbnailUrl = blog.thumbnail;
+  const filename = thumbnailUrl?.split("/").pop();
+
   await BlogService.deleteBlog({ id: req.params.id });
+
+  if (filename) {
+    const filePath = path.join(
+      __dirname,
+      "../../uploads/blog-thumbnails",
+      filename
+    );
+
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Failed to delete image:", err.message);
+      }
+    });
+  }
+
   res.status(204).send();
 };
 

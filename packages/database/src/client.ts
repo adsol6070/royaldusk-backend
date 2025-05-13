@@ -7,6 +7,4 @@ export const prisma =
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
-console.log("DB URL In Prisma client:", process.env.DATABASE_URL);
-
 export * from "../generated/prisma";

@@ -61,10 +61,16 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 nodegroup \
  && adduser --system --uid 1001 nodeuser
 
-USER nodeuser
+RUN mkdir -p /app/apps/blog-service/uploads/blog-thumbnails \
+   && chown -R nodeuser:nodegroup /app/apps/blog-service/uploads 
 
 # Copy built application
 COPY --from=installer /app .
+
+# Change ownership recursively after copy just in case
+RUN chown -R nodeuser:nodegroup /app
+   
+USER nodeuser
 
 # Expose blog-service port
 EXPOSE 5002

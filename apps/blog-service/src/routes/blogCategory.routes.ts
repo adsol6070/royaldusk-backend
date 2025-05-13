@@ -6,27 +6,38 @@ import {
   validateUpdateCategory,
   validateIDParam,
 } from "../validations/blogCategory.validation";
+import { deserializeUser, requireUser } from "@repo/auth-middleware";
+import config from "config";
 
 const router = Router();
 
+const excludedFields = [
+  "password",
+  "verified",
+  "verificationCode",
+  "passwordResetAt",
+  "passwordResetToken",
+];
+
+const publicKey = Buffer.from(
+  config.get<string>("accessTokenPublicKey"),
+  "base64"
+).toString("ascii");
+
+// Protected routes
 router.post(
   "/",
+  deserializeUser(excludedFields, publicKey),
+  requireUser,
   validateCreateCategory,
   validateRequest,
   blogCategoryController.createCategory
 );
 
-router.get(
-  "/:id",
-  validateIDParam,
-  validateRequest,
-  blogCategoryController.getCategoryByID
-);
-
-router.get("/", blogCategoryController.getAllCategories);
-
 router.patch(
   "/:id",
+  deserializeUser(excludedFields, publicKey),
+  requireUser,
   validateIDParam,
   validateUpdateCategory,
   validateRequest,
@@ -35,9 +46,21 @@ router.patch(
 
 router.delete(
   "/:id",
+  deserializeUser(excludedFields, publicKey),
+  requireUser,
   validateIDParam,
   validateRequest,
   blogCategoryController.deleteCategory
 );
+
+// Public routes
+router.get(
+  "/:id",
+  validateIDParam,
+  validateRequest,
+  blogCategoryController.getCategoryByID
+);
+
+router.get("/", blogCategoryController.getAllCategories);
 
 export default router;

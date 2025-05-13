@@ -1,4 +1,4 @@
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 
 export const validateRegistration = [
   body("name").notEmpty().withMessage("Name is required"),
@@ -14,4 +14,12 @@ export const validateRegistration = [
 export const validateLogin = [
   body("email").isEmail().withMessage("Invalid email format."),
   body("password").notEmpty().withMessage("Password is required."),
+];
+
+export const validateVerifyEmail = [
+  param("verificationCode")
+    .isHexadecimal()
+    .withMessage("Invalid verification code format")
+    .isLength({ min: 64, max: 64 })
+    .withMessage("Verification code must be 64 characters long"),
 ];

@@ -1,4 +1,4 @@
-// require("dotenv").config();
+require("dotenv").config();
 import express, { NextFunction, Request, Response } from "express";
 import morgan from "morgan";
 import cors from "cors";
@@ -13,7 +13,6 @@ const app = express();
 const PORT = process.env.PORT || "5001";
 
 const message = process.env.PORT;
-console.log("PORT in User service:", message);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -22,7 +21,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: [config.get<string>("origin")],
+    origin: config.get<string>("origin"),
     credentials: true,
   })
 );

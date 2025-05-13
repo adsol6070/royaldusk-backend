@@ -2,56 +2,77 @@ import { body, param } from "express-validator";
 
 export const validateCreateBlog = [
   body("title")
+    .trim()
     .isString()
+    .withMessage("Title must be a string")
     .isLength({ min: 5, max: 150 })
     .withMessage("Title must be between 5 and 150 characters"),
 
-  body("slug").isString().withMessage("Slug must be a string"),
+  body("slug").trim().isString().withMessage("Slug must be a string"),
 
-  body("authorID").isUUID().withMessage("Author ID must be a string"),
+  body("authorID").isUUID().withMessage("Author ID must be a valid UUID"),
 
-  body("categoryID").isUUID().withMessage("Invalid category UUID"),
+  body("categoryID").isUUID().withMessage("Category ID must be a valid UUID"),
 
   body("content")
     .isString()
+    .withMessage("Content must be a string")
     .isLength({ min: 50 })
     .withMessage("Content must be at least 50 characters"),
 
-  body("excerpt").optional().isString().withMessage("Excerpt must be a string"),
+  body("excerpt")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("Excerpt must be a string"),
 
   body("metaTitle")
-    .optional()
+    .optional({ nullable: true })
     .isString()
+    .withMessage("Meta title must be a string")
     .isLength({ max: 150 })
     .withMessage("Meta title must not exceed 150 characters"),
 
   body("metaDescription")
-    .optional()
+    .optional({ nullable: true })
     .isString()
+    .withMessage("Meta description must be a string")
     .isLength({ max: 300 })
     .withMessage("Meta description must not exceed 300 characters"),
 
   body("thumbnail")
-    .optional()
+    .optional({ nullable: true })
     .isString()
     .withMessage("Thumbnail must be a string"),
 
-  // body("tags")
-  //   .optional()
-  //   .isArray()
-  //   .withMessage("Tags must be an array of strings"),
+  body("tags")
+    .optional()
+    .customSanitizer((value) => {
+      if (typeof value === "string") {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          return [value];
+        }
+      }
+      return value;
+    })
+    .isArray()
+    .withMessage("Tags must be an array")
+    .custom((arr) => arr.every((tag: string) => typeof tag === "string"))
+    .withMessage("Each tag must be a string"),
 
   body("status")
     .isIn(["draft", "published", "archived"])
     .withMessage("Status must be one of: draft, published, archived"),
 
   body("publishedAt")
-    .optional()
+    .optional({ nullable: true })
     .isISO8601()
     .withMessage("PublishedAt must be a valid ISO8601 date"),
 
   body("scheduledAt")
-    .optional()
+    .optional({ nullable: true })
     .isISO8601()
     .withMessage("ScheduledAt must be a valid ISO8601 date"),
 ];
@@ -98,8 +119,21 @@ export const validateUpdateBlog = [
 
   body("tags")
     .optional()
+    .customSanitizer((value) => {
+      if (typeof value === "string") {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          return [value];
+        }
+      }
+      return value;
+    })
     .isArray()
-    .withMessage("Tags must be an array of strings"),
+    .withMessage("Tags must be an array")
+    .custom((arr) => arr.every((tag: string) => typeof tag === "string"))
+    .withMessage("Each tag must be a string"),
 
   body("status")
     .optional()

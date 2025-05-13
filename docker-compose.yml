@@ -30,6 +30,8 @@ services:
     depends_on:
       - rabbitmq
       - postgres
+    volumes:
+      - blog-thumbnails:/app/apps/blog-service/uploads/blog-thumbnails  
     networks:
       - app-network
 
@@ -114,6 +116,7 @@ services:
 volumes:
   pgdata-dev:
   redisDB:
+  blog-thumbnails:
 
 networks:
   app-network:

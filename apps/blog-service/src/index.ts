@@ -1,21 +1,43 @@
 import express, { Request, Response, NextFunction } from "express";
-// import dotenv from "dotenv";
+import dotenv from "dotenv";
 import morgan from "morgan";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import config from "config";
 import unifiedRoutes from "./routes";
 import errorHandler from "./middlewares/errorHandler";
 import { ApiError } from "@repo/utils/ApiError";
+import path from "path";
 
-// dotenv.config();
-
-
-console.log("DB URL:", process.env.DATABASE_URL);
-
+dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || "5002";
 
+app.use(
+  "/uploads/blog-thumbnails",
+  express.static(path.join(__dirname, "..", "uploads", "blog-thumbnails"))
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(cookieParser());
+
+const allowedOrigins = ["http://localhost:5173", "http://localhost:3000"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
 

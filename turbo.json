@@ -1,6 +1,13 @@
 {
   "$schema": "https://turborepo.com/schema.json",
-  "globalEnv": ["DATABASE_URL", "PORT"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "PORT",
+    "JWT_ACCESS_TOKEN_PUBLIC_KEY",
+    "JWT_ACCESS_TOKEN_PRIVATE_KEY",
+    "JWT_REFRESH_TOKEN_PRIVATE_KEY",
+    "JWT_REFRESH_TOKEN_PUBLIC_KEY"
+  ],
   "ui": "tui",
   "tasks": {
     "build": {

@@ -72,15 +72,15 @@ class RabbitMQService {
           } = emailData;
 
           try {
-            await sendEmail(
+            await sendEmail({
               to,
               subject,
               text,
               html,
               templateName,
               templateData,
-              attachments
-            );
+              attachments,
+            });
             this.channel?.ack(msg);
           } catch (error) {
             console.error("Error processing email message:", error);

@@ -1,8 +1,15 @@
-import amqp, { Channel, Connection } from "amqplib";
+import * as amqplib from "amqplib";
+
+type AmqpConnection =
+  ReturnType<typeof amqplib.connect> extends Promise<infer T> ? T : never;
+type AmqpChannel =
+  ReturnType<AmqpConnection["createChannel"]> extends Promise<infer T>
+    ? T
+    : never;
 
 class RabbitMQ {
-  private connection: Connection | null = null;
-  private channel: Channel | null = null;
+  private connection: AmqpConnection | null = null;
+  private channel: AmqpChannel | null = null;
 
   async connect() {
     try {
@@ -14,11 +21,11 @@ class RabbitMQ {
       while (retries < maxRetries) {
         try {
           console.log("Attempting to connect to RabbitMQ...");
-          // this.connection = await amqp.connect(
-          //   `amqp://user:password@rabbitmq:5672`
-          // );
+          this.connection = await amqplib.connect(
+            `amqp://user:password@rabbitmq:5672`
+          );
 
-          // this.channel = await this.connection.createChannel();
+          this.channel = await this.connection.createChannel();
           console.log("RabbitMQ channel created successfully.");
 
           const queue = "emailQueue";
@@ -61,9 +68,9 @@ class RabbitMQ {
       if (this.channel) {
         await this.channel.close();
       }
-      // if (this.connection) {
-      //   await this.connection.close();
-      // }
+      if (this.connection) {
+        await this.connection.close();
+      }
       console.log("RabbitMQ connection closed.");
     } catch (error) {
       console.error("Error closing RabbitMQ connection:", error);

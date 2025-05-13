@@ -1,12 +1,33 @@
 import express from "express";
-import { deserializeUser } from "../middlewares/deserializeUser";
-import { requireUser } from "../middlewares/requireUser";
+import { deserializeUser, requireUser } from "@repo/auth-middleware";
 import { userController } from "../controllers";
+import config from "config";
 
 const router = express.Router();
 
-router.use(deserializeUser, requireUser);
+const excludedFields = [
+  "password",
+  "verified",
+  "verificationCode",
+  "passwordResetAt",
+  "passwordResetToken",
+];
 
-router.get("/me", userController.getMeHandler);
+const publicKey = Buffer.from(
+  config.get<string>("accessTokenPublicKey"),
+  "base64"
+).toString("ascii");
+
+router.use(deserializeUser(excludedFields, publicKey), requireUser);
+
+router.get("/me", userController.getMe);
+
+router.get("/", userController.getAllUsers);
+
+router.get("/:id", userController.getUserById);
+
+router.patch("/:id", userController.updateUserById);
+
+router.delete("/:id", userController.deleteUserById);
 
 export default router;

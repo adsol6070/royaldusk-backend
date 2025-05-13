@@ -1,44 +1,15 @@
-import nodemailer from "nodemailer";
-import handlebars from "handlebars";
-import fs from "fs";
-import path from "path";
 import { config } from "../config/config";
+import { compileTemplate } from "../utils/template.utils";
+import { EmailOptions } from "../types/types";
+import { transporter } from "../transporter/transporter";
 
-const compileTemplate = (templateName: string, data: any): string => {
-  try {
-    const templatePath = path.resolve(
-      __dirname,
-      `../templates/${templateName}.hbs`
-    );
-    const source = fs.readFileSync(templatePath, "utf8");
-    const template = handlebars.compile(source);
-    return template(data);
-  } catch (error) {
-    console.error("Error compiling template:", error);
-    throw new Error("Error compiling template");
-  }
-};
-
-export const sendEmail = async (
-  to: string,
-  subject: string,
-  text?: string,
-  html?: string,
-  templateName?: string,
-  templateData?: any,
-  attachments?: any
-): Promise<void> => {
-  const transporter = nodemailer.createTransport({
-    host: config.email.host,
-    port: Number(config.email.port),
-    auth: {
-      user: config.email.user,
-      pass: config.email.pass,
-    },
-  });
+export const sendEmail = async (options: EmailOptions): Promise<void> => {
+  const { to, subject, text, html, templateName, templateData, attachments } =
+    options;
+  let finalHtml = html;
 
   if (templateName && templateData) {
-    html = compileTemplate(templateName, templateData);
+    finalHtml = compileTemplate(templateName, templateData);
   }
 
   const mailOptions = {
@@ -46,7 +17,7 @@ export const sendEmail = async (
     to,
     subject,
     text,
-    html,
+    html: finalHtml,
     attachments,
   };
 

@@ -1,4 +1,5 @@
 import { prisma, Prisma, Category } from "@repo/database";
+import { ApiError } from "@repo/utils/ApiError";
 
 export const BlogCategoryService = {
   createCategory: async (
@@ -30,8 +31,17 @@ export const BlogCategoryService = {
   },
 
   deleteCategory: async (id: string): Promise<Category> => {
-    return await prisma.category.delete({
-      where: { id },
-    });
+    try {
+      return await prisma.category.delete({
+        where: { id },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === "P2003") {
+          throw new ApiError(409, "Category is in use");
+        }
+      }
+      throw error;
+    }
   },
 };

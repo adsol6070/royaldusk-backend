@@ -17,7 +17,7 @@ export const UserService = {
     })) as User;
   },
   findUser: async (
-    where: Partial<Prisma.UserCreateInput>,
+    where: Prisma.UserWhereInput,
     select?: Prisma.UserSelect
   ) => {
     return (await prisma.user.findFirst({
@@ -34,12 +34,38 @@ export const UserService = {
       select,
     })) as User;
   },
+  findManyUsers: async (
+    where: Prisma.UserWhereInput,
+    select?: Prisma.UserSelect
+  ) => {
+    return await prisma.user.findMany({ where, select });
+  },
+  updateUser: async (
+    where: Prisma.UserWhereUniqueInput,
+    data: Prisma.UserUpdateInput,
+    select?: Prisma.UserSelect
+  ) => {
+    return (await prisma.user.update({ where, data, select })) as User;
+  },
+  deleteUser: async (where: Prisma.UserWhereUniqueInput) => {
+    return prisma.user.delete({ where });
+  },
   signTokens: async (user: Prisma.UserCreateInput) => {
-    const access_token = signJwt({ sub: user.id }, "accessTokenPrivateKey", {
+    const accessTokenPrivateKey = Buffer.from(
+      config.get<string>("accessTokenPrivateKey"),
+      "base64"
+    ).toString("ascii");
+
+    const refreshTokenPrivateKey = Buffer.from(
+      config.get<string>("refreshTokenPrivateKey"),
+      "base64"
+    ).toString("ascii");
+
+    const access_token = signJwt({ sub: user.id }, accessTokenPrivateKey, {
       expiresIn: `${config.get<number>("accessTokenExpiresIn")}m`,
     });
 
-    const refresh_token = signJwt({ sub: user.id }, "refreshTokenPrivateKey", {
+    const refresh_token = signJwt({ sub: user.id }, refreshTokenPrivateKey, {
       expiresIn: `${config.get<number>("refreshTokenExpiresIn")}m`,
     });
 
