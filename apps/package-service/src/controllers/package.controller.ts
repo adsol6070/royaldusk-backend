@@ -8,6 +8,7 @@ const createPackage = async (req: Request, res: Response): Promise<void> => {
   const packageData = {
     ...req.body,
     price: parseFloat(req.body.price),
+    duration: parseInt(req.body.duration),
     imageUrl: imageUrl,
     createdAt: new Date(),
   };

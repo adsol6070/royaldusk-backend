@@ -127,7 +127,7 @@ model Package {
   importantInfo       String
   location            String
   price               Float
-  duration            String
+  duration            Int
   availability        Availability
   hotels              String
   imageUrl            String
