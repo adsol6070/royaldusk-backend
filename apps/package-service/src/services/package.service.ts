@@ -3,6 +3,18 @@ import axios from "axios";
 
 const USER_SERVICE_URL = "http://localhost:4000/users/";
 
+type UpdatePackageInput = {
+  packageId: string;
+  data?: Prisma.PackageUpdateInput;
+
+  featureIds?: string[];
+  itineraryIds?: string[];
+  services?: {
+    serviceId: string;
+    type: "Inclusion" | "Exclusion";
+  }[];
+};
+
 export const PackageService = {
   createPackage: async (rawData: any): Promise<Package> => {
     console.log("Creating package with data:", rawData);
@@ -64,7 +76,13 @@ export const PackageService = {
     return packages.map((pkg) => ({
       ...pkg,
       category: { id: pkg.category.id, name: pkg.category.name },
-      policy: { id: pkg.policy?.id, bookingPolicy: pkg.policy?.bookingPolicy, cancellationPolicy: pkg.policy?.cancellationPolicy, paymentTerms: pkg.policy?.paymentTerms, visaDetail: pkg.policy?.visaDetail  },
+      policy: {
+        id: pkg.policy?.id,
+        bookingPolicy: pkg.policy?.bookingPolicy,
+        cancellationPolicy: pkg.policy?.cancellationPolicy,
+        paymentTerms: pkg.policy?.paymentTerms,
+        visaDetail: pkg.policy?.visaDetail,
+      },
       features: pkg.features.map((f) => ({
         id: f.feature.id,
         name: f.feature.name,
@@ -109,7 +127,13 @@ export const PackageService = {
     return {
       ...pkg,
       category: { id: pkg.category.id, name: pkg.category.name },
-      policy: { id: pkg.policy?.id, bookingPolicy: pkg.policy?.bookingPolicy, cancellationPolicy: pkg.policy?.cancellationPolicy, paymentTerms: pkg.policy?.paymentTerms, visaDetail: pkg.policy?.visaDetail  },
+      policy: {
+        id: pkg.policy?.id,
+        bookingPolicy: pkg.policy?.bookingPolicy,
+        cancellationPolicy: pkg.policy?.cancellationPolicy,
+        paymentTerms: pkg.policy?.paymentTerms,
+        visaDetail: pkg.policy?.visaDetail,
+      },
       features: pkg.features.map((f) => ({
         id: f.feature.id,
         name: f.feature.name,
@@ -156,88 +180,80 @@ export const PackageService = {
     return packagesWithCreators;
   },
 
- updatePackage: async (id: string, data: any): Promise<Package> => {
-  const {
-    featureIDs = [], 
-    inclusionIDs = [], 
-    exclusionIDs = [], 
-    itineraryIDs = [], 
-    ...rest
-  } = data;
+  updatePackage: async (input: UpdatePackageInput) => {
+    const { packageId, data, featureIds, itineraryIds, services } = input;
 
-  const updatedPackage = await prisma.package.update({
-    where: { id }, 
-    data: {
-      ...rest,
+    const tx: Prisma.PrismaPromise<any>[] = [];
 
-      features: {
-        deleteMany: {
-          featureId: {
-            notIn: featureIDs, 
-          },
-        },
-        connectOrCreate: featureIDs.map((featureId: string) => ({
-          where: {
-            packageId_featureId: { packageId: id, featureId }, 
-          },
-          create: {
-            packageId: id,
-            featureId,
-          },
-        })),
-      },
+    // 1. Update basic fields if provided
+    if (data && Object.keys(data).length > 0) {
+      tx.push(
+        prisma.package.update({
+          where: { id: packageId },
+          data,
+        })
+      );
+    }
 
-      itineraries: {
-        deleteMany: {
-          itineraryId: {
-            notIn: itineraryIDs, 
-          },
-        },
-        connectOrCreate: itineraryIDs.map((itineraryId: string) => ({
-          where: {
-            packageId_itineraryId: { packageId: id, itineraryId },
-          },
-          create: {
-            packageId: id,
-            itineraryId,
-          },
-        })),
-      },
+    // 2. Update Features
+    if (featureIds) {
+      tx.push(
+        prisma.packageFeatureOnPackage.deleteMany({ where: { packageId } })
+      );
 
-      services: {
-        deleteMany: {
-          serviceId: {
-            notIn: [...inclusionIDs, ...exclusionIDs], 
-          },
-        },
-        connectOrCreate: [
-          ...inclusionIDs.map((serviceId: string) => ({
-            where: {
-              packageId_serviceId: { packageId: id, serviceId }, 
-            },
-            create: {
-              packageId: id,
-              serviceId,
-              type: "Inclusion",
-            },
-          })),
-          ...exclusionIDs.map((serviceId: string) => ({
-            where: {
-              packageId_serviceId: { packageId: id, serviceId }, 
-            },
-            create: {
-              packageId: id,
-              serviceId,
-              type: "Exclusion",
-            },
-          })),
-        ],
-      },
-    },
-  });
+      if (featureIds.length > 0) {
+        const featureData = featureIds.map((featureId) => ({
+          packageId,
+          featureId,
+        }));
+        tx.push(
+          prisma.packageFeatureOnPackage.createMany({ data: featureData })
+        );
+      }
+    }
 
-  return updatedPackage;
-},
+    // 3. Update Services
+    if (services) {
+      tx.push(
+        prisma.packageServiceOnPackage.deleteMany({ where: { packageId } })
+      );
+
+      if (services.length > 0) {
+        const serviceData = services.map((service) => ({
+          packageId,
+          serviceId: service.serviceId,
+          type: service.type,
+        }));
+
+        tx.push(
+          prisma.packageServiceOnPackage.createMany({ data: serviceData })
+        );
+      }
+    }
+
+    // 4. Update Itineraries
+    if (itineraryIds) {
+      tx.push(
+        prisma.packageItineraryOnPackage.deleteMany({ where: { packageId } })
+      );
+
+      if (itineraryIds.length > 0) {
+        const itineraryData = itineraryIds.map((itineraryId) => ({
+          packageId,
+          itineraryId,
+        }));
+
+        tx.push(
+          prisma.packageItineraryOnPackage.createMany({ data: itineraryData })
+        );
+      }
+    }
+
+    // Execute all operations in a transaction
+    await prisma.$transaction(tx);
+
+    console.log("Package updated successfully");
+  },
 
   deletePackage: async (
     where: Prisma.PackageWhereUniqueInput
