@@ -2,14 +2,20 @@ import { Request, Response } from "express";
 import { PackageService } from "../services/package.service";
 import { asyncHandler } from "@repo/utils/asyncHandler";
 import { Prisma } from "@repo/database";
+import { ApiError } from "@repo/utils/ApiError";
+import path from "path";
+import fs from "fs";
 
 const createPackage = async (req: Request, res: Response): Promise<void> => {
-  const imageUrl = req.file?.path || "";
+  const filename = req.file?.filename || "";
+  const image = filename
+    ? `http://localhost:8081/package-service/uploads/package-thumbnails/${filename}`
+    : "";
 
   const packageData = {
     ...req.body,
     price: parseFloat(req.body.price),
-    imageUrl: imageUrl,
+    imageUrl: image,
     createdAt: new Date(),
   };
 
@@ -100,7 +106,30 @@ const updatePackage = async (
 };
 
 const deletePackage = async (req: Request, res: Response): Promise<void> => {
+  const pkg = await PackageService.getPackageByID({ id: req.params.id });
+  if (!pkg) {
+    throw new ApiError(404, "Package not found");
+  }
+
+  const thumbnailUrl = pkg.imageUrl;
+  const filename = thumbnailUrl?.split("/").pop();
+
   await PackageService.deletePackage({ id: req.params.id });
+
+  if (filename) {
+    const filePath = path.join(
+      __dirname,
+      "../../uploads/package-thumbnails",
+      filename
+    );
+
+    fs.unlink(filePath, (err) => {
+      if (err) {
+        console.error("Failed to delete image:", err.message);
+      }
+    });
+  }
+
   res.status(204).send();
 };
 
