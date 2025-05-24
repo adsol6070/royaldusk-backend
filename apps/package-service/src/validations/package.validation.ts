@@ -121,7 +121,7 @@ export const validateUpdatePackage = [
 
   body("exclusionIDs.*").optional().isUUID().withMessage("Each exclusion ID must be a valid UUID"),
 
-  body("policyID").isUUID().withMessage("Invalid policy UUID"),
+  body("policyID").optional().isUUID().withMessage("Invalid policy UUID"),
 ];
 
 export const validateIDParam = [
