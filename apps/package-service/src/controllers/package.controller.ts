@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PackageService } from "../services/package.service";
 import { asyncHandler } from "@repo/utils/asyncHandler";
+import { Prisma } from "@repo/database";
 
 const createPackage = async (req: Request, res: Response): Promise<void> => {
   const imageUrl = req.file?.path || "";
@@ -61,14 +62,23 @@ const getPackagesByCategoryID = async (
 };
 
 const updatePackage = async (
-  req: Request<{ id: string }>,
+  req: Request<
+    { id: string },
+    any,
+    {
+      data?: Prisma.PackageUpdateInput;
+      itineraryIds?: string[];
+      featureIds?: string[];
+      services?: { serviceId: string; type: "Inclusion" | "Exclusion" }[];
+    }
+  >,
   res: Response
 ): Promise<void> => {
-  const packageID = req.params.id;
-  console.log("requested body", req.body)
+  const { id: packageId } = req.params;
+  const { data, featureIds, itineraryIds, services } = req.body;
 
-  const updatedData: any = {
-    ...req.body,
+  const updatedData: Prisma.PackageUpdateInput = {
+    ...data,
     updatedAt: new Date(),
   };
 
@@ -76,11 +86,17 @@ const updatePackage = async (
     updatedData.imageUrl = req.file.path;
   }
 
-  const updatedPackage = await PackageService.updatePackage(packageID, updatedData);
+  await PackageService.updatePackage({
+    packageId,
+    data: updatedData,
+    featureIds,
+    itineraryIds,
+    services,
+  });
+
   res.status(200).json({
     success: true,
     message: "Package updated successfully",
-    data: updatedPackage,
   });
 };
 
