@@ -8,6 +8,7 @@ import unifiedRoutes from "./routes";
 import { rabbitMQ } from "./services/rabbitmq.service";
 import { ApiError } from "@repo/utils/ApiError";
 import { errorHandler } from "@repo/middlewares/errorHandler";
+import { emailFailedConsumerService } from "./services/emailFailedConsumer.service";
 
 const app = express();
 const PORT = process.env.PORT || "5001";
@@ -42,7 +43,16 @@ app.use(errorHandler);
 
 app.listen(PORT, async () => {
   console.log(`User Service runningg on port ${PORT}`);
-  await rabbitMQ.connect();
+  try {
+    await rabbitMQ.connect();
+
+    await emailFailedConsumerService.start();
+
+    console.log("EmailFailedConsumerService started.");
+  } catch (err) {
+    console.error("Error during service startup:", err);
+    process.exit(1);
+  }
 });
 
 process.on("SIGINT", async () => {

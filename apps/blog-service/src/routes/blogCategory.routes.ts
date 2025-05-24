@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { blogCategoryController } from "../controllers";
-import { validateRequest } from "@repo/middlewares/validateRequest"
+import { validateRequest } from "@repo/middlewares/validateRequest";
 import {
   validateCreateCategory,
   validateUpdateCategory,

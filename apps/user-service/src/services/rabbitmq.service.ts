@@ -11,6 +11,8 @@ class RabbitMQ {
   private connection: AmqpConnection | null = null;
   private channel: AmqpChannel | null = null;
 
+  private readonly queues = ["email.verify", "email.reset"];
+
   async connect() {
     try {
       const maxRetries = 5;
@@ -28,9 +30,11 @@ class RabbitMQ {
           this.channel = await this.connection.createChannel();
           console.log("RabbitMQ channel created successfully.");
 
-          const queue = "emailQueue";
-          await this.channel?.assertQueue(queue, { durable: true });
-          console.log(`RabbitMQ connected. Queue '${queue}' ready.`);
+          for (const queue of this.queues) {
+            await this.channel.assertQueue(queue, { durable: true });
+            console.log(`Queue '${queue}' is ready.`);
+          }
+
           return;
         } catch (error) {
           retries++;
@@ -53,6 +57,12 @@ class RabbitMQ {
       throw new Error("RabbitMQ channel is not initialized");
     }
 
+    if (!this.queues.includes(queueName)) {
+      console.warn(
+        `Warning: Queue '${queueName}' is not in the list of predefined queues. You may need to assert it manually.`
+      );
+    }
+
     try {
       const buffer = Buffer.from(JSON.stringify(message));
       this.channel.sendToQueue(queueName, buffer, { persistent: true });
@@ -61,6 +71,10 @@ class RabbitMQ {
       console.error("Failed to publish message:", error);
       throw error;
     }
+  }
+
+  getChannel(): AmqpChannel | null {
+    return this.channel;
   }
 
   async closeConnection() {
