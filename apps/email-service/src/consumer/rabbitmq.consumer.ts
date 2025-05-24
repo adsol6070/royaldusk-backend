@@ -15,6 +15,9 @@ class RabbitMQService {
   retries: number;
   MAX_RETRIES: number;
   RETRY_DELAY: number;
+
+  queues = ["email.verify", "email.reset", "email.failed"];
+
   constructor() {
     this.connection = null;
     this.channel = null;
@@ -28,12 +31,15 @@ class RabbitMQService {
       try {
         this.connection = await amqplib.connect(config.rabbitmq.url);
         this.channel = await this.connection.createChannel();
-        await this.channel.assertQueue(config.rabbitmq.queue, {
-          durable: true,
-        });
 
-        console.log(`Waiting for messages in ${config.rabbitmq.queue}`);
-        this.consumeMessages();
+        for (const queue of this.queues) {
+          await this.channel.assertQueue(queue, { durable: true });
+          console.log(`Waiting for messages in queue: ${queue}`);
+
+          if (queue !== "email.failed") {
+            this.consumeMessages(queue);
+          }
+        }
 
         return;
       } catch (error) {
@@ -56,12 +62,30 @@ class RabbitMQService {
     }
   }
 
-  async consumeMessages() {
+  async consumeMessages(queueName: string) {
     try {
-      this.channel?.consume(config.rabbitmq.queue, async (msg) => {
-        if (msg) {
-          const emailData = JSON.parse(msg.content.toString());
-          const {
+      this.channel?.consume(queueName, async (msg) => {
+        if (!msg) return;
+
+        const emailData = JSON.parse(msg.content.toString());
+        const {
+          to,
+          subject,
+          text,
+          html,
+          templateName,
+          templateData,
+          attachments,
+        } = emailData;
+
+        const MAX_ATTEMPTS = 3;
+        const attempts =
+          msg.properties.headers?.["x-attempt"] !== undefined
+            ? msg.properties.headers["x-attempt"]
+            : 0;
+
+        try {
+          await sendEmail({
             to,
             subject,
             text,
@@ -69,22 +93,47 @@ class RabbitMQService {
             templateName,
             templateData,
             attachments,
-          } = emailData;
+          });
 
-          try {
-            await sendEmail({
+          this.channel?.ack(msg);
+        } catch (error) {
+          console.error(`Email sending failed for ${to}:`, error);
+
+          if (attempts + 1 >= MAX_ATTEMPTS) {
+            // Send to failed queue after max attempts
+            const failedPayload = {
               to,
-              subject,
-              text,
-              html,
               templateName,
               templateData,
-              attachments,
-            });
-            this.channel?.ack(msg);
-          } catch (error) {
-            console.error("Error processing email message:", error);
-            this.channel?.nack(msg, false, true);
+              reason: error instanceof Error ? error.message : "Unknown error",
+            };
+
+            console.log(
+              `Max attempts reached. Sending email to 'email.failed' queue.`
+            );
+            this.channel?.ack(msg); // Acknowledge original message
+            this.channel?.sendToQueue(
+              "email.failed",
+              Buffer.from(JSON.stringify(failedPayload)),
+              {
+                persistent: true,
+              }
+            );
+          } else {
+            // Retry: nack original and publish new message with incremented attempts
+            this.channel?.ack(msg); // Ack original so it doesn't requeue automatically
+
+            // Publish new message with incremented attempt count
+            this.channel?.sendToQueue(
+              queueName,
+              Buffer.from(msg.content.toString()),
+              {
+                persistent: true,
+                headers: { "x-attempt": attempts + 1 },
+              }
+            );
+
+            console.log(`Retrying email for ${to}, attempt ${attempts + 1}`);
           }
         }
       });

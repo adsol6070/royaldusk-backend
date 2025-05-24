@@ -17,7 +17,7 @@ export const validateLogin = [
 ];
 
 export const validateVerifyEmail = [
-  param("verificationCode")
+  body("verificationCode")
     .isHexadecimal()
     .withMessage("Invalid verification code format")
     .isLength({ min: 64, max: 64 })

@@ -71,4 +71,29 @@ export const UserService = {
 
     return { access_token, refresh_token };
   },
+  rollbackUserAction: async (data: { to: string; templateName: string }) => {
+    if (data.templateName === "verify-email") {
+      await prisma.user.updateMany({
+        where: { email: data.to },
+        data: {
+          verificationCode: null,
+          verified: false,
+        },
+      });
+      console.log(`Rolled back verification info for ${data.to}`);
+    } else if (data.templateName === "reset-password") {
+      await prisma.user.updateMany({
+        where: { email: data.to },
+        data: {
+          passwordResetToken: null,
+          passwordResetAt: null,
+        },
+      });
+      console.log(`Rolled back password reset info for ${data.to}`);
+    } else {
+      console.warn(
+        `No rollback action defined for template ${data.templateName}`
+      );
+    }
+  },
 };

@@ -40,11 +40,20 @@ router.post(
   authController.logout
 );
 
-router.get(
-  "/verify-email/:verificationCode",
+router.post(
+  "/verify-email",
   validateVerifyEmail,
   validateRequest,
   authController.verifyEmail
+);
+
+router.post("/forgot-password", authController.forgotPassword);
+
+router.post("/reset-password", authController.resetPassword);
+
+router.post(
+  "/resend-verification-email",
+  authController.resendVerificationEmail
 );
 
 export default router;
