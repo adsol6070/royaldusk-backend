@@ -14,14 +14,16 @@ export const deserializeUser =
         return next(new ApiError(401, "You are not logged in"));
       }
 
-      const decoded = verifyJwt<{ sub: string }>(token, publicKey);
+      const decoded = verifyJwt<{ sub: string, role: string }>(token, publicKey);
+      console.log("Decoded JWT:", decoded);
 
-      if (!decoded || !decoded.sub) {
+      if (!decoded || !decoded.sub || !decoded.role) {
         return next(new ApiError(401, "Invalid token"));
       }
 
       res.locals.user = {
         id: decoded.sub,
+        role: decoded.role,
       };
 
       next();
@@ -48,4 +50,14 @@ export const requireUser = (
   } catch (err: any) {
     next(err);
   }
+};
+
+export const requireRole = (roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const user = res.locals.user;
+    if (!user || !roles.includes(user?.role)) {
+      throw new ApiError(403, "Access denied. Insufficient role.");
+    }
+    next();
+  };
 };

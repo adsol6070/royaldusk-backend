@@ -63,7 +63,7 @@ const login = async (req: Request, res: Response): Promise<any> => {
 
   const user = await UserService.findUniqueUser(
     { email: email.toLowerCase() },
-    { id: true, email: true, verified: true, password: true }
+    { id: true, email: true, verified: true, password: true, role: true }
   );
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -76,7 +76,7 @@ const login = async (req: Request, res: Response): Promise<any> => {
       message: "Invalid email or password.",
     });
   }
-
+console.log("User found:", user);
   const { access_token, refresh_token } = await UserService.signTokens(user);
 
   res.status(200).json({

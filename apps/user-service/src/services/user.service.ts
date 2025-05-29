@@ -61,11 +61,11 @@ export const UserService = {
       "base64"
     ).toString("ascii");
 
-    const access_token = signJwt({ sub: user.id }, accessTokenPrivateKey, {
+    const access_token = signJwt({ sub: user.id, role: user.role }, accessTokenPrivateKey, {
       expiresIn: `${config.get<number>("accessTokenExpiresIn")}m`,
     });
 
-    const refresh_token = signJwt({ sub: user.id }, refreshTokenPrivateKey, {
+    const refresh_token = signJwt({ sub: user.id, role: user.role }, refreshTokenPrivateKey, {
       expiresIn: `${config.get<number>("refreshTokenExpiresIn")}m`,
     });
 

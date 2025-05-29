@@ -6,7 +6,7 @@ import {
   validateUpdateCategory,
   validateIDParam,
 } from "../validations/blogCategory.validation";
-import { deserializeUser, requireUser } from "@repo/auth-middleware";
+import { deserializeUser, requireRole, requireUser } from "@repo/auth-middleware";
 import config from "config";
 
 const router = Router();
@@ -29,6 +29,7 @@ router.post(
   "/",
   deserializeUser(excludedFields, publicKey),
   requireUser,
+  requireRole(["admin"]),
   validateCreateCategory,
   validateRequest,
   blogCategoryController.createCategory
@@ -38,6 +39,7 @@ router.patch(
   "/:id",
   deserializeUser(excludedFields, publicKey),
   requireUser,
+  requireRole(["admin"]),
   validateIDParam,
   validateUpdateCategory,
   validateRequest,
@@ -48,6 +50,7 @@ router.delete(
   "/:id",
   deserializeUser(excludedFields, publicKey),
   requireUser,
+  requireRole(["admin"]),
   validateIDParam,
   validateRequest,
   blogCategoryController.deleteCategory
