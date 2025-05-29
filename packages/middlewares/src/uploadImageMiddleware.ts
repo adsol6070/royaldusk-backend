@@ -5,8 +5,8 @@ import { Request } from "express";
 import { ApiError } from "@repo/utils/ApiError";
 
 interface UploadOptions {
-  destinationFolder: string; 
-  baseUploadPath?: string;   
+  destinationFolder: string;
+  baseUploadPath?: string;
 }
 
 export const createUploadImageMiddleware = ({

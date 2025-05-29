@@ -159,11 +159,11 @@ model PackageFeatureOnPackage {
 model PackageItineraryOnPackage {
   packageId   String
   itineraryId String
-
+  day         Int
   package     Package          @relation(fields: [packageId], references: [id], onDelete: Cascade)
   itinerary   PackageItinerary @relation(fields: [itineraryId], references: [id])
 
-  @@id([packageId, itineraryId])
+  @@id([packageId, itineraryId, day])
 }
 
 model PackageServiceOnPackage {

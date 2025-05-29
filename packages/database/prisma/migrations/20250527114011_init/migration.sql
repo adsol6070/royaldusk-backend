@@ -118,7 +118,7 @@ CREATE TABLE "Package" (
     "importantInfo" TEXT NOT NULL,
     "location" TEXT NOT NULL,
     "price" DOUBLE PRECISION NOT NULL,
-    "duration" TEXT NOT NULL,
+    "duration" INTEGER NOT NULL,
     "availability" "Availability" NOT NULL,
     "hotels" TEXT NOT NULL,
     "imageUrl" TEXT NOT NULL,
@@ -142,8 +142,11 @@ CREATE TABLE "PackageFeatureOnPackage" (
 CREATE TABLE "PackageItineraryOnPackage" (
     "packageId" TEXT NOT NULL,
     "itineraryId" TEXT NOT NULL,
+    "day" INTEGER NOT NULL,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
 
-    CONSTRAINT "PackageItineraryOnPackage_pkey" PRIMARY KEY ("packageId","itineraryId")
+    CONSTRAINT "PackageItineraryOnPackage_pkey" PRIMARY KEY ("packageId","itineraryId","day")
 );
 
 -- CreateTable

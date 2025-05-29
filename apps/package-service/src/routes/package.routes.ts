@@ -4,6 +4,7 @@ import {
   validateCreatePackage,
   validateUpdatePackage,
   validateIDParam,
+  validateUpdateAvailability,
   validateCategoryIDParam,
 } from "../validations/package.validation";
 
@@ -41,10 +42,14 @@ router.get(
 router.get("/", packageController.getAllPackages);
 
 router.patch(
+  "/:id/availability",
+  validateUpdateAvailability,
+  validateRequest,
+  packageController.updatePackageAvailability
+);
+
+router.patch(
   "/:id",
-  // (req: any, res: any, next: any)=>{
-  //   console.log("requested body", req.body)
-  // },
   upload.single("image"),
   validateUpdatePackage,
   validateRequest,

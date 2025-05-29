@@ -3,7 +3,6 @@ import { prisma, Prisma, Enquiry } from "@repo/database";
 export const PackageEnquiryService = {
   createEnquiry: async (data: Prisma.EnquiryCreateInput): Promise<Enquiry> => {
     const response = await prisma.enquiry.create({ data });
-    console.log("response ", response)
     return response
   },
 

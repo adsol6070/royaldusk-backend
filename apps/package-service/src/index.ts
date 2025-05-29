@@ -4,13 +4,19 @@ import cors from "cors";
 import config from "config";
 import morgan from "morgan";
 import unifiedRoutes from "./routes";
-import { errorHandler } from "@repo/middlewares/errorHandler"
+import { errorHandler } from "@repo/middlewares/errorHandler";
 import { ApiError } from "@repo/utils/ApiError";
+import path from "path";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || "5004";
+
+app.use(
+  "/uploads/package-thumbnails",
+  express.static(path.join(__dirname, "..", "uploads", "package-thumbnails"))
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -29,13 +35,6 @@ app.use(
     credentials: true,
   })
 );
-
-// app.use(
-//   cors({
-//     origin: config.get<string>("origin"),
-//     credentials: true,
-//   })
-// );
 
 if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
 
