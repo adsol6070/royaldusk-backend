@@ -7,6 +7,9 @@ CREATE TYPE "Availability" AS ENUM ('Available', 'SoldOut', 'ComingSoon');
 -- CreateEnum
 CREATE TYPE "ServiceType" AS ENUM ('Inclusion', 'Exclusion');
 
+-- CreateEnum
+CREATE TYPE "RoleEnumType" AS ENUM ('user', 'admin');
+
 -- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
@@ -14,6 +17,7 @@ CREATE TABLE "User" (
     "email" TEXT NOT NULL,
     "verified" BOOLEAN DEFAULT false,
     "password" TEXT NOT NULL,
+    "role" "RoleEnumType" DEFAULT 'user',
     "verificationCode" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -143,8 +147,6 @@ CREATE TABLE "PackageItineraryOnPackage" (
     "packageId" TEXT NOT NULL,
     "itineraryId" TEXT NOT NULL,
     "day" INTEGER NOT NULL,
-    "title" TEXT NOT NULL,
-    "description" TEXT NOT NULL,
 
     CONSTRAINT "PackageItineraryOnPackage_pkey" PRIMARY KEY ("packageId","itineraryId","day")
 );

@@ -21,6 +21,7 @@ model User {
   verified         Boolean? @default(false)
 
   password         String
+  role RoleEnumType? @default(user)
 
   verificationCode String?  @db.Text @unique
 
@@ -144,6 +145,7 @@ model Package {
   itineraries         PackageItineraryOnPackage[]
   services            PackageServiceOnPackage[]
   enquiries           Enquiry[]
+
 }
 
 model PackageFeatureOnPackage {
@@ -204,4 +206,9 @@ enum Availability {
 enum ServiceType {
   Inclusion
   Exclusion
+}
+
+enum RoleEnumType {
+  user
+  admin
 }

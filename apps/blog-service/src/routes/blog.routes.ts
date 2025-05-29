@@ -7,7 +7,7 @@ import {
   validateIDParam,
   validateCategoryIDParam,
 } from "../validations/blog.validation";
-import { deserializeUser, requireUser } from "@repo/auth-middleware";
+import { deserializeUser, requireUser, requireRole} from "@repo/auth-middleware";
 import config from "config";
 
 import { createUploadImageMiddleware } from "@repo/middlewares/uploadImageMiddleware";
@@ -37,6 +37,7 @@ router.post(
   "/",
   deserializeUser(excludedFields, publicKey),
   requireUser,
+  requireRole(["admin"]),
   upload.single("thumbnail"),
   validateCreateBlog,
   validateRequest,
@@ -47,6 +48,7 @@ router.patch(
   "/:id",
   deserializeUser(excludedFields, publicKey),
   requireUser,
+  requireRole(["admin"]),
   upload.single("thumbnail"),
   validateUpdateBlog,
   validateRequest,
@@ -57,6 +59,7 @@ router.delete(
   "/:id",
   deserializeUser(excludedFields, publicKey),
   requireUser,
+  requireRole(["admin"]),
   validateIDParam,
   validateRequest,
   blogController.deleteBlog
@@ -66,6 +69,7 @@ router.patch(
   "/:id/status",
   deserializeUser(excludedFields, publicKey),
   requireUser,
+  requireRole(["admin"]),
   validateUpdateStatus,
   validateRequest,
   blogController.updateBlogStatus
