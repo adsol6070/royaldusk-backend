@@ -20,5 +20,9 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "stripe": "^18.2.0"
+  }
 }
