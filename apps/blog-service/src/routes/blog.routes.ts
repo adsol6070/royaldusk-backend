@@ -7,7 +7,11 @@ import {
   validateIDParam,
   validateCategoryIDParam,
 } from "../validations/blog.validation";
-import { deserializeUser, requireUser, requireRole} from "@repo/auth-middleware";
+import {
+  deserializeUser,
+  requireUser,
+  requireRole,
+} from "@repo/auth-middleware";
 import config from "config";
 
 import { createUploadImageMiddleware } from "@repo/middlewares/uploadImageMiddleware";

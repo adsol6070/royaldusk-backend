@@ -32,6 +32,8 @@ model User {
   passwordResetAt    DateTime?
 
   blogs            Blog[]
+  bookings            Booking[]
+
 
   @@unique([email, verificationCode, passwordResetToken])
 }
@@ -145,7 +147,7 @@ model Package {
   itineraries         PackageItineraryOnPackage[]
   services            PackageServiceOnPackage[]
   enquiries           Enquiry[]
-
+  bookingItems        BookingItem[]
 }
 
 model PackageFeatureOnPackage {
@@ -197,6 +199,50 @@ model Enquiry {
   package      Package  @relation(fields: [packageID], references: [id], onDelete: Cascade)
 }
 
+model Booking {
+  id              String         @id @default(uuid())
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  guestName       String?
+  guestEmail      String?
+  guestMobile     String?
+  guestNationality String?   
+
+  remarks         String? 
+  confirmationPdfPath  String?
+  agreedToTerms   Boolean        @default(false) 
+
+  status          BookingStatus  @default(Pending)
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  items           BookingItem[]
+
+  payments Payment[]
+}
+
+model BookingItem {
+  id         String   @id @default(uuid())
+  bookingId  String
+  packageId  String
+  travelers  Int
+  startDate  DateTime
+
+  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  package    Package  @relation(fields: [packageId], references: [id])
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum BookingStatus {
+  Pending
+  Confirmed
+  Cancelled
+}
+
 enum Availability {
   Available
   SoldOut
@@ -211,4 +257,54 @@ enum ServiceType {
 enum RoleEnumType {
   user
   admin
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  bookingId      String
+  booking        Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  provider       PaymentProvider
+  method         PaymentMethod
+  providerRefId  String        @unique 
+  chargeId       String?                   
+  receiptUrl     String?                   
+  refunded       Boolean?     @default(false) 
+  failureCode    String?                   
+  failureMessage String?                  
+  cardBrand      String?                  
+  cardLast4      String?                  
+
+  status         PaymentStatus
+  amount         Int
+  currency       String
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+
+enum PaymentProvider {
+  Stripe
+  Razorpay
+  PayPal
+  Cash
+  UPI
+  BankTransfer
+}
+
+enum PaymentMethod {
+  Card
+  Wallet
+  UPI
+  NetBanking
+  Cash
+}
+
+enum PaymentStatus {
+  canceled
+  pending
+  payment_failed
+  processing
+  succeeded
 }

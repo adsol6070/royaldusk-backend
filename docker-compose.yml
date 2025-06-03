@@ -35,6 +35,41 @@ services:
     networks:
       - app-network
 
+  booking-service:
+    build:
+      context: .
+      dockerfile: apps/booking-service/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./apps/booking-service/.env
+    container_name: booking-service
+    ports:
+      - "5005:5005"
+    depends_on:
+      - rabbitmq
+      - postgres
+    networks:
+      - app-network
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: apps/payment-service/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./apps/payment-service/.env
+    container_name: payment-service
+    ports:
+      - "5006:5006"
+    depends_on:
+      - postgres
+    volumes:
+      - booking-confirmations:/app/apps/payment-service/uploads/booking-confirmations
+    networks:
+      - app-network
+
   email-service:
     build:
       context: .
@@ -137,6 +172,7 @@ volumes:
   redisDB:
   blog-thumbnails:
   package-thumbnails:
+  booking-confirmations:
 
 networks:
   app-network:
