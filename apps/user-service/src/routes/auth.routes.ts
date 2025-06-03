@@ -56,4 +56,6 @@ router.post(
   authController.resendVerificationEmail
 );
 
+router.post("/google", authController.googleLogin);
+
 export default router;

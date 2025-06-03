@@ -65,6 +65,7 @@ services:
       - postgres
     volumes:
       - package-thumbnails:/app/apps/package-service/uploads/package-thumbnails
+      - location-images:/app/apps/package-service/uploads/location-images
     networks:
       - app-network
 
@@ -137,6 +138,7 @@ volumes:
   redisDB:
   blog-thumbnails:
   package-thumbnails:
+  location-images:
 
 networks:
   app-network:

@@ -64,6 +64,9 @@ RUN addgroup --system --gid 1001 nodegroup \
 RUN mkdir -p /app/apps/package-service/uploads/package-thumbnails \
    && chown -R nodeuser:nodegroup /app/apps/package-service/uploads  
 
+RUN mkdir -p /app/apps/package-service/uploads/location-images \
+   && chown -R nodeuser:nodegroup /app/apps/package-service/uploads  
+
 # Copy built application
 COPY --from=installer /app .
 

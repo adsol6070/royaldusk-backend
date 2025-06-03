@@ -67,37 +67,108 @@ const getPackagesByCategoryID = async (
   });
 };
 
+const getPackagesByLocationID = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const locationId = req.params.locationId;
+  console.log("Fetching packages for locationId:", locationId);
+  const packages = await PackageService.getPackages({ locationId });
+  console.log("Fetched packages for locationId:", packages);
+  res.status(200).json({
+    success: true,
+    message: "Packages retrieved successfully",
+    data: packages,
+  });
+};
+
 const updatePackage = async (
-  req: Request<
-    { id: string },
-    any,
-    {
-      data?: Prisma.PackageUpdateInput;
-      itineraryIds?: string[];
-      featureIds?: string[];
-      services?: { serviceId: string; type: "Inclusion" | "Exclusion" }[];
-    }
-  >,
+  req: Request<{ id: string }, any, any>,
   res: Response
 ): Promise<void> => {
   const { id: packageId } = req.params;
-  const { data, featureIds, itineraryIds, services } = req.body;
+  const {
+    name,
+    slug,
+    description,
+    importantInfo,
+    locationId,
+    price,
+    duration,
+    categoryID,
+    availability,
+    hotels,
+    policyID,
+    timeline,
+    inclusionIDs,
+    exclusionIDs,
+    featureIDs,
+  } = req.body;
 
-  const updatedData: Prisma.PackageUpdateInput = {
-    ...data,
+  const data: Prisma.PackageUpdateInput = {
+    name,
+    slug,
+    description,
+    importantInfo,
+    location: { connect: { id: locationId } },
+    price: Number(price),
+    duration: Number(duration),
+    availability,
+    hotels,
     updatedAt: new Date(),
+    category: { connect: { id: categoryID } },
+    policy: { connect: { id: policyID } },
   };
 
-  if (req.file?.path) {
-    updatedData.imageUrl = req.file.path;
+  if (req.file?.filename) {
+    const existingPackage = await PackageService.getPackageByID({
+      id: packageId,
+    });
+
+    const oldImageUrl = existingPackage?.imageUrl;
+    const oldFilename = oldImageUrl?.split("/").pop();
+
+    if (oldFilename) {
+      const oldFilePath = path.join(
+        __dirname,
+        "../../uploads/package-thumbnails",
+        oldFilename
+      );
+
+      fs.unlink(oldFilePath, (err) => {
+        if (err) {
+          console.error("Failed to delete old image:", err.message);
+        }
+      });
+    }
+
+    data.imageUrl = `http://localhost:8081/package-service/uploads/package-thumbnails/${req.file.filename}`;
   }
+
+  const services: { serviceId: string; type: "Inclusion" | "Exclusion" }[] = [
+    ...(inclusionIDs ?? []).map((id: string) => ({
+      serviceId: id,
+      type: "Inclusion",
+    })),
+    ...(exclusionIDs ?? []).map((id: string) => ({
+      serviceId: id,
+      type: "Exclusion",
+    })),
+  ];
+
+  const featureIds: string[] = featureIDs ?? [];
 
   await PackageService.updatePackage({
     packageId,
-    data: updatedData,
+    data,
     featureIds,
-    itineraryIds,
     services,
+    timeline: timeline?.map((dayBlock: any) => ({
+      day: dayBlock.day,
+      entries: dayBlock.entries.map((entry: any) => ({
+        itineraryId: entry.itineraryId,
+      })),
+    })),
   });
 
   res.status(200).json({
@@ -138,7 +209,10 @@ const updatePackageAvailability = async (
   req: Request<{ id: string }>,
   res: Response
 ): Promise<void> => {
-  const pkg = await PackageService.updateAvailability(req.params.id, req.body.availability);
+  const pkg = await PackageService.updateAvailability(
+    req.params.id,
+    req.body.availability
+  );
   res.status(200).json({
     success: true,
     message: "Package availability updated successfully",
@@ -151,6 +225,7 @@ export default {
   getPackageByID: asyncHandler(getPackageByID),
   getAllPackages: asyncHandler(getAllPackages),
   getPackagesByCategoryID: asyncHandler(getPackagesByCategoryID),
+  getPackagesByLocationID: asyncHandler(getPackagesByLocationID),
   updatePackage: asyncHandler(updatePackage),
   deletePackage: asyncHandler(deletePackage),
   updatePackageAvailability: asyncHandler(updatePackageAvailability),

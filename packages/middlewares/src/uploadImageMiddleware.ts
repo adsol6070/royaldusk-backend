@@ -17,15 +17,35 @@ export const createUploadImageMiddleware = ({
 
   const storage: StorageEngine = multer.diskStorage({
     destination: (req, file, cb) => {
-      if (!fs.existsSync(uploadPath)) {
-        fs.mkdirSync(uploadPath, { recursive: true });
+      try {
+        if (!fs.existsSync(uploadPath)) {
+          fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+      } catch (error) {
+        cb(
+          new ApiError(
+            500,
+            "Failed to create upload directory: " + (error as Error).message
+          ),
+          uploadPath
+        );
       }
-      cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
-      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-      const extension = path.extname(file.originalname);
-      cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
+      try {
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+        const extension = path.extname(file.originalname);
+        cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
+      } catch (error) {
+        cb(
+          new ApiError(
+            500,
+            "Failed to generate filename: " + (error as Error).message
+          ),
+          ""
+        );
+      }
     },
   });
 
@@ -50,6 +70,6 @@ export const createUploadImageMiddleware = ({
   return multer({
     storage,
     fileFilter,
-    limits: { fileSize: 5 * 1024 * 1024 },
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   });
 };

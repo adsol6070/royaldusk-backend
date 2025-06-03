@@ -8,6 +8,7 @@ import { rabbitMQ } from "../services/rabbitmq.service";
 import { asyncHandler } from "@repo/utils/asyncHandler";
 import { ApiError } from "@repo/utils/ApiError";
 import { Prisma } from "@repo/database";
+import { admin } from "@repo/utils/FirebaseAdmin";
 
 const register = async (
   req: Request,
@@ -66,7 +67,11 @@ const login = async (req: Request, res: Response): Promise<any> => {
     { id: true, email: true, verified: true, password: true, role: true }
   );
 
-  if (!user || !(await bcrypt.compare(password, user.password))) {
+  if (
+    !user ||
+    !user.password ||
+    !(await bcrypt.compare(password, user.password))
+  ) {
     throw new ApiError(400, "Invalid email or password.");
   }
 
@@ -76,7 +81,7 @@ const login = async (req: Request, res: Response): Promise<any> => {
       message: "Invalid email or password.",
     });
   }
-console.log("User found:", user);
+  console.log("User found:", user);
   const { access_token, refresh_token } = await UserService.signTokens(user);
 
   res.status(200).json({
@@ -235,6 +240,37 @@ const resendVerificationEmail = async (
   });
 };
 
+const googleLogin = async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+  if (!idToken) {
+    throw new ApiError(400, "ID token is required");
+  }
+
+  const decodedToken = await admin.auth().verifyIdToken(idToken);
+  const { uid, email, name, picture } = decodedToken;
+
+  if (!email) throw new ApiError(400, "Email is required from Google");
+
+  const user = await UserService.upsertUserFromGoogle({
+    firebaseUid: uid,
+    email: email.toLowerCase(),
+    name: name || "Unnamed",
+    image: picture,
+  });
+  if (!user.verified) {
+    // Optional: mark Google sign-in users as verified
+    await UserService.updateUser({ id: user.id }, { verified: true });
+  }
+
+  const { access_token, refresh_token } = await UserService.signTokens(user);
+
+  return res.status(200).json({
+    status: "success",
+    access_token,
+    refresh_token,
+  });
+};
+
 export default {
   register: asyncHandler(register),
   login: asyncHandler(login),
@@ -243,4 +279,5 @@ export default {
   forgotPassword: asyncHandler(forgotPassword),
   resetPassword: asyncHandler(resetPassword),
   resendVerificationEmail: asyncHandler(resendVerificationEmail),
+  googleLogin: asyncHandler(googleLogin),
 };

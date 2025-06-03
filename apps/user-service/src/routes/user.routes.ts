@@ -26,7 +26,7 @@ router.get("/", requireRole(["admin"]), userController.getAllUsers);
 
 router.get("/:id", requireRole(["admin"]), userController.getUserById);
 
-router.patch("/:id", requireRole(["admin"]), userController.updateUserById);
+router.patch("/:id", userController.updateUserById);
 
 router.delete("/:id", requireRole(["admin"]), userController.deleteUserById);
 

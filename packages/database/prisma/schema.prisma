@@ -15,23 +15,25 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  name             String   @db.VarChar(255)
-  email            String   @unique
-  verified         Boolean? @default(false)
+  id                  String   @id @default(uuid())
+  name                String   @db.VarChar(255)
+  email               String   @unique
+  verified            Boolean? @default(false)
 
-  password         String
-  role RoleEnumType? @default(user)
+  password            String?  
+  firebaseUid         String? 
+  profileImageUrl     String?
 
-  verificationCode String?  @db.Text @unique
+  role                RoleEnumType? @default(user)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  verificationCode    String?  @db.Text @unique
+  passwordResetToken  String?
+  passwordResetAt     DateTime?
 
-  passwordResetToken String?
-  passwordResetAt    DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  blogs            Blog[]
+  blogs               Blog[]
 
   @@unique([email, verificationCode, passwordResetToken])
 }
@@ -126,7 +128,8 @@ model Package {
   review              Int  @default(0)
   currency            String @default("AED")
   importantInfo       String
-  location            String
+  locationId          String
+  location            Location @relation(fields: [locationId], references: [id])
   price               Float
   duration            Int
   availability        Availability
@@ -195,6 +198,16 @@ model Enquiry {
 
   packageID    String
   package      Package  @relation(fields: [packageID], references: [id], onDelete: Cascade)
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(150)
+  imageUrl  String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  packages  Package[] 
 }
 
 enum Availability {

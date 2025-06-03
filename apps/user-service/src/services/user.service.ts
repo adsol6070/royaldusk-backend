@@ -96,4 +96,23 @@ export const UserService = {
       );
     }
   },
+  upsertUserFromGoogle: async (data: {
+  firebaseUid: string;
+  email: string;
+  name: string;
+  image?: string;
+}) => {
+  return prisma.user.upsert({
+    where: { email: data.email },
+    update: {
+      name: data.name,
+    },
+    create: {
+      name: data.name,
+      email: data.email,
+      password: "GOOGLE_AUTH", // placeholder, never used
+      verified: true,
+    },
+  });
+},
 };

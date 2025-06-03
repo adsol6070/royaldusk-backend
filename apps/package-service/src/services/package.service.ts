@@ -8,11 +8,11 @@ type UpdatePackageInput = {
   data?: Prisma.PackageUpdateInput;
 
   featureIds?: string[];
-  itineraryIds?: string[];
   services?: {
     serviceId: string;
     type: "Inclusion" | "Exclusion";
   }[];
+  timeline?: { day: number; entries: { itineraryId: string }[] }[];
 };
 
 export const PackageService = {
@@ -23,6 +23,7 @@ export const PackageService = {
       inclusionIDs = [],
       exclusionIDs = [],
       categoryID,
+      locationId,
       policyID,
       ...rest
     } = rawData;
@@ -30,6 +31,7 @@ export const PackageService = {
     const data: Prisma.PackageCreateInput = {
       ...rest,
       category: { connect: { id: categoryID } },
+      location: { connect: { id: locationId } },
       policy: { connect: { id: policyID } },
 
       features: {
@@ -74,6 +76,7 @@ export const PackageService = {
     const packages = await prisma.package.findMany({
       include: {
         category: true,
+        location: true,
         features: { include: { feature: true } },
         itineraries: { include: { itinerary: true } },
         services: { include: { service: true } },
@@ -124,6 +127,7 @@ export const PackageService = {
       where,
       include: {
         category: true,
+        location: true,
         features: { include: { feature: true } },
         itineraries: {
           include: {
@@ -188,33 +192,66 @@ export const PackageService = {
     };
   },
 
-  getPackages: async (
-    filters: Prisma.PackageWhereInput = {}
-  ): Promise<any[]> => {
-    const packages = await prisma.package.findMany({
-      where: filters,
-      orderBy: { createdAt: "desc" },
-    });
+getPackages: async (
+  filters: Prisma.PackageWhereInput = {}
+): Promise<any[]> => {
+  const packages = await prisma.package.findMany({
+    where: filters,
+    include: {
+      category: true,
+      location: true,
+      features: { include: { feature: true } },
+      itineraries: { include: { itinerary: true } },
+      services: { include: { service: true } },
+      policy: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
-    const packagesWithCreators = await Promise.all(
-      packages.map(async (pkg) => {
-        const creator = await axios.get(`${USER_SERVICE_URL}${pkg.createdAt}`);
-        return {
-          ...pkg,
-          creator: creator.data,
-        };
-      })
-    );
+  return packages.map((pkg) => ({
+    ...pkg,
+    category: pkg.category
+      ? { id: pkg.category.id, name: pkg.category.name }
+      : null,
+    policy: pkg.policy
+      ? {
+          id: pkg.policy.id,
+          bookingPolicy: pkg.policy.bookingPolicy,
+          cancellationPolicy: pkg.policy.cancellationPolicy,
+          paymentTerms: pkg.policy.paymentTerms,
+          visaDetail: pkg.policy.visaDetail,
+        }
+      : null,
+    features: pkg.features.map((f) => ({
+      id: f.feature.id,
+      name: f.feature.name,
+    })),
+    itineraries: pkg.itineraries.map((it) => ({
+      id: it.itinerary.id,
+      title: it.itinerary.title,
+      description: it.itinerary.description,
+    })),
+    inclusions: pkg.services
+      .filter((s) => s.type === "Inclusion")
+      .map((s) => ({
+        id: s.service.id,
+        name: s.service.name,
+      })),
+    exclusions: pkg.services
+      .filter((s) => s.type === "Exclusion")
+      .map((s) => ({
+        id: s.service.id,
+        name: s.service.name,
+      })),
+    services: undefined,
+  }));
+},
 
-    return packagesWithCreators;
-  },
-
-  updatePackage: async (input: UpdatePackageInput & { timeline?: any[] }) => {
+  updatePackage: async (input: UpdatePackageInput) => {
     const { packageId, data, featureIds, timeline, services } = input;
 
     const tx: Prisma.PrismaPromise<any>[] = [];
 
-    // 1. Update basic fields if provided
     if (data && Object.keys(data).length > 0) {
       tx.push(
         prisma.package.update({
@@ -224,7 +261,6 @@ export const PackageService = {
       );
     }
 
-    // 2. Update Features
     if (featureIds) {
       tx.push(
         prisma.packageFeatureOnPackage.deleteMany({ where: { packageId } })
@@ -241,7 +277,6 @@ export const PackageService = {
       }
     }
 
-    // 3. Update Services
     if (services) {
       tx.push(
         prisma.packageServiceOnPackage.deleteMany({ where: { packageId } })
@@ -260,34 +295,16 @@ export const PackageService = {
       }
     }
 
-    // 4. Update Itineraries
-    // if (itineraryIds) {
-    //   tx.push(
-    //     prisma.packageItineraryOnPackage.deleteMany({ where: { packageId } })
-    //   );
-
-    //   if (itineraryIds.length > 0) {
-    //     const itineraryData = itineraryIds.map((itineraryId) => ({
-    //       packageId,
-    //       itineraryId,
-    //     }));
-
-    //     tx.push(
-    //       prisma.packageItineraryOnPackage.createMany({ data: itineraryData })
-    //     );
-    //   }
-    // }
     if (timeline) {
-      // Delete existing itinerary links
       tx.push(
         prisma.packageItineraryOnPackage.deleteMany({ where: { packageId } })
       );
 
-      const itineraryData = timeline.flatMap((entry) =>
-        entry.selectedOptions.map((opt: any) => ({
+      const itineraryData = timeline.flatMap((dayItem) =>
+        dayItem.entries.map((entry: any) => ({
           packageId,
-          itineraryId: opt.value,
-          day: entry.day,
+          itineraryId: entry.itineraryId,
+          day: dayItem.day,
         }))
       );
 
@@ -298,7 +315,6 @@ export const PackageService = {
       }
     }
 
-    // Execute all operations in a transaction
     await prisma.$transaction(tx);
   },
 

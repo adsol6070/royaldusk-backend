@@ -18,6 +18,11 @@ app.use(
   express.static(path.join(__dirname, "..", "uploads", "package-thumbnails"))
 );
 
+app.use(
+  "/uploads/location-images",
+  express.static(path.join(__dirname, "..", "uploads", "location-images"))
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

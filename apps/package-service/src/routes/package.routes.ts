@@ -6,6 +6,7 @@ import {
   validateIDParam,
   validateUpdateAvailability,
   validateCategoryIDParam,
+  validatePackageLocationIDParam
 } from "../validations/package.validation";
 
 import { createUploadImageMiddleware } from "@repo/middlewares/uploadImageMiddleware";
@@ -39,6 +40,13 @@ router.get(
   packageController.getPackagesByCategoryID
 );
 
+router.get(
+  "/location/:locationId",
+  validatePackageLocationIDParam,
+  validateRequest,
+  packageController.getPackagesByLocationID
+);
+
 router.get("/", packageController.getAllPackages);
 
 router.patch(
@@ -50,7 +58,7 @@ router.patch(
 
 router.patch(
   "/:id",
-  upload.single("image"),
+  upload.single("imageUrl"),
   validateUpdatePackage,
   validateRequest,
   packageController.updatePackage
