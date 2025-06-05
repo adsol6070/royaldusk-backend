@@ -5,6 +5,7 @@ import { ApiError } from "@repo/utils/ApiError";
 
 // Create a new booking (guest or logged-in user)
 const createBooking = async (req: Request, res: Response): Promise<void> => {
+  console.log("req.body:", req.body);
   const userId = res.locals.user?.id || null;
   console.log("res.locals.user:", req.body);
 
@@ -14,6 +15,7 @@ const createBooking = async (req: Request, res: Response): Promise<void> => {
   };
 
   const booking = await BookingService.createBooking(bookingData);
+  console.log("booking:", booking);
 
   res.status(201).json({
     success: true,

@@ -18,6 +18,7 @@ const validMethods = ["Card", "Wallet", "UPI", "NetBanking", "Cash"] as const;
 type PaymentProviderKey = keyof typeof paymentProviders;
 
 const createPaymentIntent = async (req: Request, res: Response) => {
+  console.log("Creating payment intent with body:", req.body);
   const { bookingId, amount, currency = "usd", provider, method } = req.body;
 
   if (!bookingId || !amount || !provider || !method) {
