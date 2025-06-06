@@ -3,6 +3,8 @@ import { prisma } from "@repo/database";
 import { paymentProviders } from "../services/payment.service";
 import { asyncHandler } from "@repo/utils/asyncHandler";
 import { ApiError } from "@repo/utils/ApiError";
+import fs from "fs";
+import path from "path";
 
 const validProviders = [
   "Stripe",
@@ -90,8 +92,26 @@ const createPaymentIntent = async (req: Request, res: Response) => {
   return res.json({ clientSecret });
 };
 
+const getConfirmationPdf = async (req: Request, res: Response) => {
+  const { bookingId } = req.params;
+
+  console.log("Fetching confirmation PDF for bookingId:", bookingId);
+
+  const filePath = path.join(
+    __dirname,
+    `../../uploads/booking-confirmations/booking-${bookingId}.pdf`
+  );
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "PDF not found" });
+  }
+
+  res.download(filePath, `booking-${bookingId}.pdf`);
+};
+
 const paymentController = {
   createPaymentIntent: asyncHandler(createPaymentIntent),
+  getConfirmationPdf: asyncHandler(getConfirmationPdf),
 };
 
 export default paymentController;

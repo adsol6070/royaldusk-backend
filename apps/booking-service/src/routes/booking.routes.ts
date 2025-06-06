@@ -47,6 +47,12 @@ router.get(
 );
 
 router.get("/", bookingController.getAllBookings);
+
+router.get(
+  "/:bookingId/download-confirmation",
+  bookingController.downloadBookingConfirmation
+);
+
 //
 // 🔒 PROTECTED ROUTES (Admin/Internal Use)
 //
@@ -78,7 +84,7 @@ router.delete(
   bookingController.deleteBookingItem
 );
 
-router.delete( 
+router.delete(
   "/:bookingId",
   deserializeUser(excludedFields, publicKey),
   requireUser,

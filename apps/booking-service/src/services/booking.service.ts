@@ -111,6 +111,7 @@ export const BookingService = {
       remarks: booking.remarks,
       agreedToTerms: booking.agreedToTerms,
       status: booking.status,
+      confirmationPdfPath: booking.confirmationPdfPath,
       createdAt: booking.createdAt,
       items: booking.items.map((item) => ({
         id: item.id,
