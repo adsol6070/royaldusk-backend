@@ -122,6 +122,12 @@ model PackagePolicy {
   packages            Package[]
 }
 
+enum PackageTag {
+  Regular
+  Popular
+  Top
+}
+
 model Package {
   id                  String    @id @default(uuid())
   name                String
@@ -151,6 +157,8 @@ model Package {
   services            PackageServiceOnPackage[]
   enquiries           Enquiry[]
   bookingItems        BookingItem[]
+
+  tag                 PackageTag @default(Regular)
 }
 
 model PackageFeatureOnPackage {

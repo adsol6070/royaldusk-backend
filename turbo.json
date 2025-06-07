@@ -10,7 +10,12 @@
     "RAZORPAY_KEY_ID",
     "RAZORPAY_KEY_SECRET",
     "STRIPE_SECRET_KEY",
-    "STRIPE_WEBHOOK_SECRET"
+    "STRIPE_WEBHOOK_SECRET",
+    "EMAIL_HOST",
+    "EMAIL_PORT",
+    "EMAIL_USER",
+    "EMAIL_PASS",
+    "RABBITMQ_URL"
   ],
   "ui": "tui",
   "tasks": {
