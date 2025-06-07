@@ -49,6 +49,26 @@ const getBookingById = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
+const getBookingByEmail = async (req: Request, res: Response): Promise<void> => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(400, "Email is required");
+  }
+
+  const bookings = await BookingService.getBookingsByEmail(email);
+
+  if (!bookings || bookings.length === 0) {
+    throw new ApiError(404, "No bookings found for this email");
+  }
+
+  res.status(200).json({
+    success: true,
+    message: "Bookings retrieved successfully",
+    data: bookings,
+  });
+};
+
 // Update a booking item
 const updateBookingItem = async (
   req: Request,
@@ -171,6 +191,7 @@ export default {
   createBooking: asyncHandler(createBooking),
   getAllBookings: asyncHandler(getAllBookings),
   getBookingById: asyncHandler(getBookingById),
+  getBookingByEmail: asyncHandler(getBookingByEmail),
   updateBookingItem: asyncHandler(updateBookingItem),
   updateBookingStatus: asyncHandler(updateBookingStatus),
   deleteBookingItem: asyncHandler(deleteBookingItem),

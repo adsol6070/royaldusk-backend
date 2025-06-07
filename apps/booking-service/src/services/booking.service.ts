@@ -135,6 +135,52 @@ export const BookingService = {
 
     return transformed;
   },
+  getBookingsByEmail: async (email: string): Promise<any[]> => {
+    const bookings = await prisma.booking.findMany({
+      where: {
+        guestEmail: email,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        items: {
+          include: {
+            package: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        payments: true,
+      },
+    });
+
+    return bookings.map((booking) => {
+      const firstItem = booking.items[0];
+      const succeededPayments = booking.payments.filter(
+        (p) => p.status === "succeeded"
+      );
+
+      return {
+        id: booking.id,
+        guestName: booking.guestName,
+        guestEmail: booking.guestEmail,
+        status: booking.status,
+        createdAt: booking.createdAt,
+        packageName: firstItem?.package?.name ?? null,
+        travelDate: firstItem?.startDate ?? null,
+        travelers: firstItem?.travelers ?? 0,
+        paymentStatus: booking.payments[0]?.status ?? "pending",
+        totalAmountPaid: succeededPayments.reduce(
+          (sum, p) => sum + p.amount,
+          0
+        ),
+        currency: succeededPayments[0]?.currency ?? null,
+      };
+    });
+  },
   updateBookingItem: async (
     id: string,
     data: Partial<Prisma.BookingItemUpdateInput>

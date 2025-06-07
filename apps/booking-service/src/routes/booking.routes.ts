@@ -5,6 +5,7 @@ import {
   validateUpdateBookingItem,
   validateBookingIdParam,
   validateUpdateBookingStatus,
+  validateEmailQuery,
 } from "../validations/booking.validation";
 
 import { deserializeUser, requireUser } from "@repo/auth-middleware";
@@ -36,6 +37,19 @@ router.post(
   validateCreateBooking,
   validateRequest,
   bookingController.createBooking
+);
+
+//
+// 🔒 PROTECTED ROUTES (Admin/Internal Use)
+//
+
+router.post(
+  "/userbooking",
+  deserializeUser(excludedFields, publicKey),
+  requireUser,
+  validateEmailQuery,
+  validateRequest,
+  bookingController.getBookingByEmail
 );
 
 // Get booking by ID (public access)

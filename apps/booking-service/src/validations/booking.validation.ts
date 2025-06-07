@@ -88,3 +88,9 @@ export const validateUpdateBookingStatus = [
     .isIn(["Pending", "Confirmed", "Cancelled"])
     .withMessage("Status must be one of: pending, confirmed, cancelled"),
 ];
+
+export const validateEmailQuery = [
+   body("email")
+    .isEmail()
+    .withMessage("Email must be a valid email address"),
+];
