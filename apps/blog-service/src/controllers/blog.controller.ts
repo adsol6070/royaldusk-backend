@@ -7,8 +7,9 @@ import fs from "fs";
 
 const createBlog = async (req: Request, res: Response): Promise<void> => {
   const filename = req.file?.filename || "";
+  const baseUrl = process.env.BASE_URL || "http://localhost:8081";
   const image = filename
-    ? `http://localhost:8081/blog-service/uploads/blog-thumbnails/${filename}`
+    ? `${baseUrl}/blog-service/uploads/blog-thumbnails/${filename}`
     : "";
 
   let parsedTags: string[] = [];
@@ -47,7 +48,7 @@ const getBlogByID = async (req: Request, res: Response): Promise<void> => {
     });
     return;
   }
-  
+
   res.status(200).json({
     success: true,
     message: "Blog retrieved successfully",
