@@ -22,7 +22,7 @@ class RabbitMQService {
     this.connection = null;
     this.channel = null;
     this.retries = 0;
-    this.MAX_RETRIES = 5;
+    this.MAX_RETRIES = 10;
     this.RETRY_DELAY = 3000;
   }
 

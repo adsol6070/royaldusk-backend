@@ -1,3 +1,3 @@
 export default {
-  origin: "http://localhost:5173",
+  origin: "https://royaldusk.com",
 };

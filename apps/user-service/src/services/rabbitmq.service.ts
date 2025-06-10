@@ -15,7 +15,7 @@ class RabbitMQ {
 
   async connect() {
     try {
-      const maxRetries = 5;
+      const maxRetries = 10;
       let retries = 0;
       const delay = (ms: number) =>
         new Promise((resolve) => setTimeout(resolve, ms));
@@ -24,7 +24,7 @@ class RabbitMQ {
         try {
           console.log("Attempting to connect to RabbitMQ...");
           this.connection = await amqplib.connect(
-            `amqp://user:password@rabbitmq:5672`
+            `amqp://user:password@localhost:5672`
           );
 
           this.channel = await this.connection.createChannel();

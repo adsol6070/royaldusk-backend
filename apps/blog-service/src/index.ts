@@ -1,5 +1,6 @@
-import express, { Request, Response, NextFunction } from "express";
 import dotenv from "dotenv";
+dotenv.config();
+import express, { Request, Response, NextFunction } from "express";
 import morgan from "morgan";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -8,8 +9,6 @@ import unifiedRoutes from "./routes";
 import { errorHandler } from "@repo/middlewares/errorHandler"
 import { ApiError } from "@repo/utils/ApiError";
 import path from "path";
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || "5002";
@@ -24,7 +23,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(cookieParser());
 
-const allowedOrigins = ["http://localhost:5173", "http://localhost:3000"];
+const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
 
 app.use(
   cors({
