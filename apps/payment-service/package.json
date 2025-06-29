@@ -4,7 +4,9 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc"
+    "build": "npm run copy-assets && tsc",
+    "start": "node dist/index.js",
+    "copy-assets": "copyfiles -u 1 \"src/templates/**/*\" dist"
   },
   "keywords": [],
   "author": "",
@@ -28,6 +30,7 @@
     "@types/dotenv": "^6.1.1",
     "@types/express": "^5.0.2",
     "@types/react": "^19.1.6",
+    "copyfiles": "^2.4.1",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3"
   }

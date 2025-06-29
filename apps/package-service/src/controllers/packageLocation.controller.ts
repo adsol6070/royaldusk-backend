@@ -9,8 +9,9 @@ import fs from "fs";
 // Create a new location
 const createLocation = async (req: Request, res: Response): Promise<void> => {
   const filename = req.file?.filename || "";
+  const baseUrl = process.env.BASE_URL;
   const imageUrl = filename
-    ? `http://localhost:8081/package-service/uploads/location-images/${filename}`
+    ? `${baseUrl}/package-service/uploads/location-images/${filename}`
     : req.body.imageUrl;
 
   const location = await LocationService.createLocation({
@@ -63,6 +64,7 @@ const updateLocation = async (req: Request, res: Response): Promise<void> => {
   let imageUrl = existing.imageUrl;
   if (req.file?.filename) {
     const oldFilename = imageUrl?.split("/").pop();
+    const baseUrl = process.env.BASE_URL;
     if (oldFilename) {
       const oldPath = path.join(
         __dirname,
@@ -74,7 +76,7 @@ const updateLocation = async (req: Request, res: Response): Promise<void> => {
       });
     }
 
-    imageUrl = `http://localhost:8081/package-service/uploads/location-images/${req.file.filename}`;
+    imageUrl = `${baseUrl}/package-service/uploads/location-images/${req.file.filename}`;
   } else if (req.body.imageUrl) {
     imageUrl = req.body.imageUrl;
   }

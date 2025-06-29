@@ -1,7 +1,4 @@
 import { prisma, Prisma, Package } from "@repo/database";
-import axios from "axios";
-
-const USER_SERVICE_URL = "http://localhost:4000/users/";
 
 type UpdatePackageInput = {
   packageId: string;
@@ -192,60 +189,60 @@ export const PackageService = {
     };
   },
 
-getPackages: async (
-  filters: Prisma.PackageWhereInput = {}
-): Promise<any[]> => {
-  const packages = await prisma.package.findMany({
-    where: filters,
-    include: {
-      category: true,
-      location: true,
-      features: { include: { feature: true } },
-      itineraries: { include: { itinerary: true } },
-      services: { include: { service: true } },
-      policy: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  getPackages: async (
+    filters: Prisma.PackageWhereInput = {}
+  ): Promise<any[]> => {
+    const packages = await prisma.package.findMany({
+      where: filters,
+      include: {
+        category: true,
+        location: true,
+        features: { include: { feature: true } },
+        itineraries: { include: { itinerary: true } },
+        services: { include: { service: true } },
+        policy: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
-  return packages.map((pkg) => ({
-    ...pkg,
-    category: pkg.category
-      ? { id: pkg.category.id, name: pkg.category.name }
-      : null,
-    policy: pkg.policy
-      ? {
-          id: pkg.policy.id,
-          bookingPolicy: pkg.policy.bookingPolicy,
-          cancellationPolicy: pkg.policy.cancellationPolicy,
-          paymentTerms: pkg.policy.paymentTerms,
-          visaDetail: pkg.policy.visaDetail,
-        }
-      : null,
-    features: pkg.features.map((f) => ({
-      id: f.feature.id,
-      name: f.feature.name,
-    })),
-    itineraries: pkg.itineraries.map((it) => ({
-      id: it.itinerary.id,
-      title: it.itinerary.title,
-      description: it.itinerary.description,
-    })),
-    inclusions: pkg.services
-      .filter((s) => s.type === "Inclusion")
-      .map((s) => ({
-        id: s.service.id,
-        name: s.service.name,
+    return packages.map((pkg) => ({
+      ...pkg,
+      category: pkg.category
+        ? { id: pkg.category.id, name: pkg.category.name }
+        : null,
+      policy: pkg.policy
+        ? {
+            id: pkg.policy.id,
+            bookingPolicy: pkg.policy.bookingPolicy,
+            cancellationPolicy: pkg.policy.cancellationPolicy,
+            paymentTerms: pkg.policy.paymentTerms,
+            visaDetail: pkg.policy.visaDetail,
+          }
+        : null,
+      features: pkg.features.map((f) => ({
+        id: f.feature.id,
+        name: f.feature.name,
       })),
-    exclusions: pkg.services
-      .filter((s) => s.type === "Exclusion")
-      .map((s) => ({
-        id: s.service.id,
-        name: s.service.name,
+      itineraries: pkg.itineraries.map((it) => ({
+        id: it.itinerary.id,
+        title: it.itinerary.title,
+        description: it.itinerary.description,
       })),
-    services: undefined,
-  }));
-},
+      inclusions: pkg.services
+        .filter((s) => s.type === "Inclusion")
+        .map((s) => ({
+          id: s.service.id,
+          name: s.service.name,
+        })),
+      exclusions: pkg.services
+        .filter((s) => s.type === "Exclusion")
+        .map((s) => ({
+          id: s.service.id,
+          name: s.service.name,
+        })),
+      services: undefined,
+    }));
+  },
 
   updatePackage: async (input: UpdatePackageInput) => {
     const { packageId, data, featureIds, timeline, services } = input;

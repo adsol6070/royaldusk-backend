@@ -3,6 +3,7 @@
   "globalEnv": [
     "DATABASE_URL",
     "PORT",
+    
     "JWT_ACCESS_TOKEN_PUBLIC_KEY",
     "JWT_ACCESS_TOKEN_PRIVATE_KEY",
     "JWT_REFRESH_TOKEN_PRIVATE_KEY",
@@ -34,6 +35,11 @@
       "dependsOn": ["^check-types"]
     },
     "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "dependsOn": ["build"],
       "cache": false,
       "persistent": true
     }

@@ -49,7 +49,10 @@ const getBookingById = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
-const getBookingByEmail = async (req: Request, res: Response): Promise<void> => {
+const getBookingByEmail = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { email } = req.body;
 
   if (!email) {
@@ -160,7 +163,7 @@ const downloadBookingConfirmation = async (
   }
 
   const response = await fetch(
-    `http://payment-service:5006/payment/confirmation-pdf/${bookingId}`,
+    `https://api.royaldusk.com/payment-service/payment/confirmation-pdf/${bookingId}`,
     {
       method: "GET",
     }

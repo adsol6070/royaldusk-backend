@@ -7,7 +7,7 @@ import fs from "fs";
 
 const createBlog = async (req: Request, res: Response): Promise<void> => {
   const filename = req.file?.filename || "";
-  const baseUrl = process.env.BASE_URL || "http://localhost:8081";
+  const baseUrl = process.env.BASE_URL;
   const image = filename
     ? `${baseUrl}/blog-service/uploads/blog-thumbnails/${filename}`
     : "";
@@ -122,8 +122,9 @@ const updateBlog = async (
   if (req.file?.filename) {
     const oldThumbnail = existingBlog.thumbnail;
     const oldFilename = oldThumbnail?.split("/").pop();
+    const baseUrl = process.env.BASE_URL;
 
-    updatedData.thumbnail = `http://localhost:8081/blog-service/uploads/blog-thumbnails/${req.file.filename}`;
+    updatedData.thumbnail = `${baseUrl}/blog-service/uploads/blog-thumbnails/${req.file.filename}`;
 
     if (oldFilename) {
       const oldFilePath = path.join(
