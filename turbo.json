@@ -18,7 +18,8 @@
     "EMAIL_PORT",
     "EMAIL_USER",
     "EMAIL_PASS",
-    "RABBITMQ_URL"
+    "RABBITMQ_URL",
+    "ALLOWED_ORIGINS"
   ],
   "ui": "tui",
   "tasks": {

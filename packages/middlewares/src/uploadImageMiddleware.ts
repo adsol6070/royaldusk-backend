@@ -17,6 +17,8 @@ export const createUploadImageMiddleware = ({
 
   const storage: StorageEngine = multer.diskStorage({
     destination: (req, file, cb) => {
+      console.log("Upload path:", uploadPath);
+      console.log("Upload file:", file);
       try {
         if (!fs.existsSync(uploadPath)) {
           fs.mkdirSync(uploadPath, { recursive: true });

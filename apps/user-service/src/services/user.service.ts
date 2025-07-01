@@ -68,7 +68,7 @@ export const UserService = {
     const refresh_token = signJwt({ sub: user.id, role: user.role }, refreshTokenPrivateKey, {
       expiresIn: `${config.get<number>("refreshTokenExpiresIn")}m`,
     });
-
+    console.log("access_token, refresh_token", access_token, refresh_token)
     return { access_token, refresh_token };
   },
   rollbackUserAction: async (data: { to: string; templateName: string }) => {
@@ -110,7 +110,7 @@ export const UserService = {
     create: {
       name: data.name,
       email: data.email,
-      password: "GOOGLE_AUTH", // placeholder, never used
+      password: "GOOGLE_AUTH", 
       verified: true,
     },
   });

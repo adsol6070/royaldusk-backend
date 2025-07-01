@@ -81,8 +81,9 @@ const login = async (req: Request, res: Response): Promise<any> => {
       message: "Invalid email or password.",
     });
   }
-  console.log("User found:", user);
+  console.log("user found", user)
   const { access_token, refresh_token } = await UserService.signTokens(user);
+  console.log("access_token, refresh_token", access_token, refresh_token)
 
   res.status(200).json({
     status: "success",
