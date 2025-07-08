@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import { PDFDocument } from "pdf-lib";
 import renderBookingPdfStream from "../templates/BookingConfirmationPdfComponent";
-import { prisma } from "@repo/database";
 
 export const generateAndStoreBookingPdf = async (
   booking: any
@@ -36,14 +35,6 @@ export const generateAndStoreBookingPdf = async (
   const fileName = `booking-${booking.id}.pdf`;
   const filePath = path.join(uploadDir, fileName);
   fs.writeFileSync(filePath, mergedPdfBuffer);
-
-  // 4. Save path to DB
-  await prisma.booking.update({
-    where: { id: booking.id },
-    data: {
-      confirmationPdfPath: `http://localhost:8081/payment-service/uploads/booking-confirmations/${fileName}`,
-    },
-  });
 
   return filePath;
 };

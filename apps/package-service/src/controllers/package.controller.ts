@@ -8,8 +8,9 @@ import fs from "fs";
 
 const createPackage = async (req: Request, res: Response): Promise<void> => {
   const filename = req.file?.filename || "";
+  const baseUrl = process.env.BASE_URL;
   const image = filename
-    ? `http://localhost:8081/package-service/uploads/package-thumbnails/${filename}`
+    ? `${baseUrl}/package-service/uploads/package-thumbnails/${filename}`
     : "";
 
   const packageData = {
@@ -126,6 +127,7 @@ const updatePackage = async (
     });
 
     const oldImageUrl = existingPackage?.imageUrl;
+    const baseUrl = process.env.BASE_URL;
     const oldFilename = oldImageUrl?.split("/").pop();
 
     if (oldFilename) {
@@ -142,7 +144,7 @@ const updatePackage = async (
       });
     }
 
-    data.imageUrl = `http://localhost:8081/package-service/uploads/package-thumbnails/${req.file.filename}`;
+    data.imageUrl = `${baseUrl}/package-service/uploads/package-thumbnails/${req.file.filename}`;
   }
 
   const services: { serviceId: string; type: "Inclusion" | "Exclusion" }[] = [

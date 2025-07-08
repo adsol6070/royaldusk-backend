@@ -61,14 +61,22 @@ export const UserService = {
       "base64"
     ).toString("ascii");
 
-    const access_token = signJwt({ sub: user.id, role: user.role }, accessTokenPrivateKey, {
-      expiresIn: `${config.get<number>("accessTokenExpiresIn")}m`,
-    });
+    const access_token = signJwt(
+      { sub: user.id, role: user.role },
+      accessTokenPrivateKey,
+      {
+        expiresIn: `${config.get<number>("accessTokenExpiresIn")}m`,
+      }
+    );
 
-    const refresh_token = signJwt({ sub: user.id, role: user.role }, refreshTokenPrivateKey, {
-      expiresIn: `${config.get<number>("refreshTokenExpiresIn")}m`,
-    });
-    console.log("access_token, refresh_token", access_token, refresh_token)
+    const refresh_token = signJwt(
+      { sub: user.id, role: user.role },
+      refreshTokenPrivateKey,
+      {
+        expiresIn: `${config.get<number>("refreshTokenExpiresIn")}m`,
+      }
+    );
+
     return { access_token, refresh_token };
   },
   rollbackUserAction: async (data: { to: string; templateName: string }) => {
@@ -97,22 +105,22 @@ export const UserService = {
     }
   },
   upsertUserFromGoogle: async (data: {
-  firebaseUid: string;
-  email: string;
-  name: string;
-  image?: string;
-}) => {
-  return prisma.user.upsert({
-    where: { email: data.email },
-    update: {
-      name: data.name,
-    },
-    create: {
-      name: data.name,
-      email: data.email,
-      password: "GOOGLE_AUTH", 
-      verified: true,
-    },
-  });
-},
+    firebaseUid: string;
+    email: string;
+    name: string;
+    image?: string;
+  }) => {
+    return prisma.user.upsert({
+      where: { email: data.email },
+      update: {
+        name: data.name,
+      },
+      create: {
+        name: data.name,
+        email: data.email,
+        password: "GOOGLE_AUTH", // placeholder, never used
+        verified: true,
+      },
+    });
+  },
 };
