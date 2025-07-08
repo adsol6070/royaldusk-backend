@@ -19,7 +19,8 @@
   "dependencies": {
     "config": "^3.3.12",
     "firebase-admin": "^13.4.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "@repo/database": "*"
   },
   "devDependencies": {
     "@types/config": "^3.3.5",

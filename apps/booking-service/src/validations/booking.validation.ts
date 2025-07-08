@@ -35,45 +35,22 @@ export const validateCreateBooking = [
     .isLength({ max: 500 })
     .withMessage("Remarks must be a string with max 500 characters"),
 
-  body("paymentMethod")
-    .optional({ nullable: true })
-    .isString()
-    .isIn(["Credit Card", "Cash", "Bank Transfer"])
-    .withMessage("Payment method must be one of: Credit Card, Cash, Bank Transfer"),
-
   body("agreedToTerms")
     .isBoolean()
     .withMessage("You must agree to the terms and conditions"),
 
-  body("items")
-    .isArray({ min: 1 })
-    .withMessage("Items must be a non-empty array"),
+  body("serviceType")
+    .isString()
+    .isIn(["Package", "Tour", "Hotel", "Activity", "Transport"])
+    .withMessage("Service type must be one of: Package, Tour, Hotel, Activity, Transport"),
 
-  body("items.*.packageId")
+  body("serviceId")
     .isUUID()
-    .withMessage("Each item must have a valid packageId (UUID)"),
+    .withMessage("Service ID must be a valid UUID"),
 
-  body("items.*.travelers")
-    .isInt({ min: 1 })
-    .withMessage("Travelers must be an integer of at least 1"),
-
-  body("items.*.startDate")
-    .isISO8601()
-    .withMessage("StartDate must be a valid ISO8601 date"),
-];
-
-export const validateUpdateBookingItem = [
-  param("id").isUUID().withMessage("Invalid booking item ID"),
-
-  body("travelers")
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage("Travelers must be an integer of at least 1"),
-
-  body("startDate")
-    .optional()
-    .isISO8601()
-    .withMessage("StartDate must be a valid ISO8601 date"),
+  body("serviceData")
+    .isObject()
+    .withMessage("Service data must be a valid JSON object"),
 ];
 
 export const validateBookingIdParam = [
@@ -86,11 +63,11 @@ export const validateUpdateBookingStatus = [
   body("status")
     .isString()
     .isIn(["Pending", "Confirmed", "Cancelled"])
-    .withMessage("Status must be one of: pending, confirmed, cancelled"),
+    .withMessage("Status must be one of: Pending, Confirmed, Cancelled"),
 ];
 
 export const validateEmailQuery = [
-   body("email")
+  body("email")
     .isEmail()
     .withMessage("Email must be a valid email address"),
 ];

@@ -3,11 +3,9 @@ import { BookingService } from "../services/booking.service";
 import { asyncHandler } from "@repo/utils/asyncHandler";
 import { ApiError } from "@repo/utils/ApiError";
 
-// Create a new booking (guest or logged-in user)
+// ✅ Create a new booking
 const createBooking = async (req: Request, res: Response): Promise<void> => {
-  console.log("req.body:", req.body);
   const userId = res.locals.user?.id || null;
-  console.log("res.locals.user:", req.body);
 
   const bookingData = {
     ...req.body,
@@ -15,7 +13,6 @@ const createBooking = async (req: Request, res: Response): Promise<void> => {
   };
 
   const booking = await BookingService.createBooking(bookingData);
-  console.log("booking:", booking);
 
   res.status(201).json({
     success: true,
@@ -24,6 +21,7 @@ const createBooking = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
+// ✅ Get all bookings
 const getAllBookings = async (_req: Request, res: Response): Promise<void> => {
   const bookings = await BookingService.getAllBookings();
   res.status(200).json({
@@ -33,9 +31,14 @@ const getAllBookings = async (_req: Request, res: Response): Promise<void> => {
   });
 };
 
-// Get booking by ID
+// ✅ Get booking by ID
 const getBookingById = async (req: Request, res: Response): Promise<void> => {
-  const { bookingId }: any = req.params;
+  const { bookingId } = req.params;
+
+  if (!bookingId) {
+    throw new ApiError(400, "Booking ID is required");
+  }
+
   const booking = await BookingService.getBookingById(bookingId);
 
   if (!booking) {
@@ -49,10 +52,8 @@ const getBookingById = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
-const getBookingByEmail = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+// ✅ Get bookings by email
+const getBookingByEmail = async (req: Request, res: Response): Promise<void> => {
   const { email } = req.body;
 
   if (!email) {
@@ -72,37 +73,12 @@ const getBookingByEmail = async (
   });
 };
 
-// Update a booking item
-const updateBookingItem = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { id }: any = req.params;
-
-  const updatedItem = await BookingService.updateBookingItem(id, req.body);
-
-  if (!updatedItem) {
-    throw new ApiError(404, "Booking item not found");
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Booking item updated successfully",
-    data: updatedItem,
-  });
-};
-
-const updateBookingStatus = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { bookingId } = req.params;
+// ✅ Update booking status
+const updateBookingStatus = async (req: Request, res: Response): Promise<void> => {
+  const { bookingId } = req.params as any;
   const { status } = req.body;
 
-  const updatedBooking = await BookingService.updateBookingStatus(
-    bookingId,
-    status
-  );
+  const updatedBooking = await BookingService.updateBookingStatus(bookingId, status);
 
   if (!updatedBooking) {
     throw new ApiError(404, "Booking not found or status update failed");
@@ -115,28 +91,9 @@ const updateBookingStatus = async (
   });
 };
 
-// Delete a specific booking item
-const deleteBookingItem = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { id }: any = req.params;
-
-  const deleted = await BookingService.deleteBookingItem(id);
-
-  if (!deleted) {
-    throw new ApiError(404, "Booking item not found or already deleted");
-  }
-
-  res.status(200).json({
-    success: true,
-    message: "Booking item deleted successfully",
-  });
-};
-
-// Delete entire booking
+// ✅ Delete entire booking
 const deleteBooking = async (req: Request, res: Response): Promise<void> => {
-  const { bookingId }: any = req.params;
+  const { bookingId } = req.params as any;
 
   const deleted = await BookingService.deleteBooking(bookingId);
 
@@ -150,11 +107,9 @@ const deleteBooking = async (req: Request, res: Response): Promise<void> => {
   });
 };
 
-const downloadBookingConfirmation = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
-  const { bookingId }: any = req.params;
+// ✅ Download booking confirmation PDF
+const downloadBookingConfirmation = async (req: Request, res: Response): Promise<void> => {
+  const { bookingId } = req.params as any;
 
   const booking = await BookingService.getBookingById(bookingId);
   if (!booking) {
@@ -163,13 +118,9 @@ const downloadBookingConfirmation = async (
   }
 
   const response = await fetch(
-    `https://api.royaldusk.com/payment-service/payment/confirmation-pdf/${bookingId}`,
-    {
-      method: "GET",
-    }
+    `http://localhost:8081/payment-service/payment/confirmation-pdf/${bookingId}`,
+    { method: "GET" }
   );
-
-  console.log("Response:", response);
 
   if (!response.ok) {
     throw new ApiError(500, "Failed to download booking confirmation PDF");
@@ -181,7 +132,6 @@ const downloadBookingConfirmation = async (
   });
 
   if (response.body) {
-    // Convert web ReadableStream to Node.js Readable
     const { Readable } = require("stream");
     const nodeStream = Readable.fromWeb(response.body as any);
     nodeStream.pipe(res);
@@ -195,9 +145,7 @@ export default {
   getAllBookings: asyncHandler(getAllBookings),
   getBookingById: asyncHandler(getBookingById),
   getBookingByEmail: asyncHandler(getBookingByEmail),
-  updateBookingItem: asyncHandler(updateBookingItem),
   updateBookingStatus: asyncHandler(updateBookingStatus),
-  deleteBookingItem: asyncHandler(deleteBookingItem),
   deleteBooking: asyncHandler(deleteBooking),
   downloadBookingConfirmation: asyncHandler(downloadBookingConfirmation),
 };

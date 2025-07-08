@@ -72,35 +72,20 @@ const createCheckoutSession = async (req: Request, res: Response) => {
       guestEmail,
       guestMobile,
       guestNationality,
-      cartItems: cartItemsJson,
-      totalAmount,
+      serviceType,
+      serviceId,
+      serviceData,
       remarks,
       paymentMethod,
     } = metadata;
 
-    if (!guestEmail || !cartItemsJson) {
+    if (!guestEmail || !serviceType || !serviceId || !serviceData) {
       return res.status(400).json({
-        error: "Missing guest email or cart items in metadata",
+        error: "Missing service or guest information in metadata",
       });
     }
 
-    let cartItems;
-    try {
-      cartItems = JSON.parse(cartItemsJson);
-
-      if (!Array.isArray(cartItems) || cartItems.length === 0) {
-        throw new Error("Cart items must be a non-empty array");
-      }
-    } catch (parseError) {
-      console.error("❌ Cart items parsing failed:", parseError);
-      return res.status(400).json({
-        error: "Invalid cart items format",
-        details:
-          parseError instanceof Error ? parseError.message : "Unknown error",
-      });
-    }
-
-    // Handle Stripe customer creation/retrieval
+    // Create or retrieve Stripe customer
     let stripeCustomer = null;
     try {
       const existingCustomers = await paymentProviders.stripe.customers.list({
@@ -109,22 +94,19 @@ const createCheckoutSession = async (req: Request, res: Response) => {
       });
 
       if (existingCustomers.data.length > 0 && existingCustomers.data[0]) {
-        stripeCustomer = existingCustomers.data[0];
-        console.log("📍 Using existing customer:", stripeCustomer.id);
-
-        // Optionally update customer info
-        await paymentProviders.stripe.customers.update(stripeCustomer.id, {
-          name: guestName,
-          phone: guestMobile,
-          metadata: {
-            nationality: guestNationality || "",
-            last_updated: new Date().toISOString(),
-            created_from: "royal_dusk_checkout",
-          },
-        });
-      } else if (guestEmail) {
-        console.log("✨ Creating new customer for:", guestEmail);
-
+        stripeCustomer = await paymentProviders.stripe.customers.update(
+          existingCustomers.data[0].id,
+          {
+            name: guestName,
+            phone: guestMobile,
+            metadata: {
+              nationality: guestNationality || "",
+              last_updated: new Date().toISOString(),
+              created_from: "royal_dusk_checkout",
+            },
+          }
+        );
+      } else {
         stripeCustomer = await paymentProviders.stripe.customers.create({
           name: guestName,
           email: guestEmail,
@@ -140,76 +122,26 @@ const createCheckoutSession = async (req: Request, res: Response) => {
             }
             : undefined,
         });
-        console.log("✅ Created new customer:", stripeCustomer.id);
       }
-    } catch (customerError) {
-      console.error("⚠️ Customer creation/retrieval failed:", customerError);
+    } catch (err) {
+      console.error("⚠️ Stripe customer error:", err);
       stripeCustomer = null;
     }
 
-    // Prepare line items from cart data
-    console.log("📦 Preparing line items...");
-
-    const lineItems = cartItems.map((item: any, index: number) => {
-      const itemPrice = parseFloat(item.price) || 0;
-      const unitAmountInFils = Math.round(itemPrice * 100);
-
-      console.log(`📦 Item ${index + 1}:`, {
-        packageName: item.packageName,
-        price: itemPrice,
-        unitAmountInFils,
-        travelers: item.travelers,
-      });
-
-      return {
+    const lineItems = [
+      {
         price_data: {
-          currency: currency.toLowerCase(),
+          currency,
           product_data: {
-            name: item.packageName || `Package #${item.packageId}`,
-            description: `${item.travelers || 1} travelers - Start: ${new Date(
-              item.startDate
-            ).toLocaleDateString()}`,
-            metadata: {
-              package_id: item.packageId.toString(),
-              travelers: (item.travelers || 1).toString(),
-              start_date: item.startDate,
-            },
+            name: `${serviceType} Service`,
+            description: `Booking for ${serviceType}`,
           },
-          unit_amount: unitAmountInFils,
+          unit_amount: amount,
         },
         quantity: 1,
-      };
-    });
+      },
+    ];
 
-    // Verify total amount matches
-    const calculatedTotal = lineItems.reduce(
-      (sum, item) => sum + item.price_data.unit_amount,
-      0
-    );
-    console.log("💰 Amount verification:", {
-      requestAmount: amount,
-      calculatedTotal,
-      matches: amount === calculatedTotal,
-    });
-
-    if (amount !== calculatedTotal) {
-      console.warn("⚠️ Amount mismatch detected but continuing...");
-    }
-
-    // 🔧 FIX: Prepare cart items for metadata storage
-    // Compress cart items to fit in Stripe metadata (500 char limit per field)
-    const compressedCartItems = cartItems.map((item: any) => ({
-      pid: item.packageId, // packageId -> pid
-      pn: item.packageName, // packageName -> pn
-      t: item.travelers, // travelers -> t
-      sd: item.startDate, // startDate -> sd
-      p: item.price, // price -> p
-    }));
-
-    const cartItemsString = JSON.stringify(compressedCartItems);
-    console.log("📦 Cart items string length:", cartItemsString.length);
-
-    // Create checkout session
     const sessionData: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
       line_items: lineItems,
@@ -221,14 +153,12 @@ const createCheckoutSession = async (req: Request, res: Response) => {
         guest_email: guestEmail,
         guest_phone: guestMobile || "",
         guest_nationality: guestNationality || "",
-        total_amount: amount.toString(),
-        currency: currency.toUpperCase(),
-        booking_source: "royal_dusk_web",
         remarks: remarks || "",
         payment_method: paymentMethod || "Credit Card",
-        // 🔧 FIX: Store actual cart items data (not just summary)
-        cart_items: cartItemsString, // Store compressed cart items
-        cart_count: cartItems.length.toString(),
+        service_type: serviceType,
+        service_id: serviceId,
+        service_data: JSON.stringify(serviceData),
+        booking_source: "royal_dusk_web",
       },
       billing_address_collection: "required",
       phone_number_collection: {
@@ -236,37 +166,14 @@ const createCheckoutSession = async (req: Request, res: Response) => {
       },
     };
 
-    // Add customer information to session
     if (stripeCustomer?.id) {
       sessionData.customer = stripeCustomer.id;
-      console.log("🔗 Using customer ID:", stripeCustomer.id);
     } else if (guestEmail) {
       sessionData.customer_email = guestEmail;
-      console.log("📧 Using customer_email:", guestEmail);
     }
 
-    console.log("🔄 Creating Stripe session with data:", {
-      hasCustomer: !!sessionData.customer,
-      hasCustomerEmail: !!sessionData.customer_email,
-      amount,
-      currency,
-      lineItemsCount: lineItems.length,
-      metadataKeys: Object.keys(sessionData.metadata || {}),
-      cartItemsInMetadata: !!sessionData.metadata?.cart_items,
-      cartItemsSize: cartItemsString.length,
-    });
-
-    // Create the Stripe checkout session
     const session =
       await paymentProviders.stripe.checkout.sessions.create(sessionData);
-
-    console.log("✅ Checkout session created successfully:", {
-      sessionId: session.id,
-      sessionUrl: session.url,
-      customer: stripeCustomer?.id,
-      amount,
-      currency,
-    });
 
     return res.json({
       sessionId: session.id,
@@ -276,16 +183,6 @@ const createCheckoutSession = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("❌ Checkout session creation failed:", error);
-
-    if (error instanceof Error) {
-      console.error("Error details:", {
-        message: error.message,
-        stack: error.stack,
-        ...((error as any).type && { stripeErrorType: (error as any).type }),
-        ...((error as any).code && { stripeErrorCode: (error as any).code }),
-      });
-    }
-
     return res.status(500).json({
       error: "Failed to create checkout session",
       details: error instanceof Error ? error.message : "Unknown error",

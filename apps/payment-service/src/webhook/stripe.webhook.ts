@@ -54,86 +54,43 @@ const handleCheckoutSessionCompleted = async (
   session: Stripe.Checkout.Session
 ) => {
   try {
-    const existingPayment = await prisma.payment.findFirst({
-      where: {
-        OR: [{ providerRefId: session.payment_intent as string }],
-      },
-      include: { booking: true },
-    });
-
-    if (existingPayment?.booking) {
-      console.log("✅ Booking already exists for session:", session.id);
-      return;
-    }
     const metadata = session.metadata;
 
     if (!metadata) {
       throw new Error("No metadata found in session");
     }
 
-    let cartItems = [];
+    const {
+      service_type,
+      service_id,
+      service_data,
+      guest_name,
+      guest_email,
+      guest_phone,
+      guest_nationality,
+      remarks,
+    } = metadata;
 
-    if (metadata.cart_items) {
-      try {
-        const compressedItems = JSON.parse(metadata.cart_items);
-
-        cartItems = compressedItems.map((item: any) => ({
-          packageId: item.pid,
-          packageName: item.pn,
-          travelers: item.t,
-          startDate: item.sd,
-          price: item.p,
-        }));
-      } catch (parseError) {
-        console.error(
-          "❌ Failed to parse cart items from metadata:",
-          parseError
-        );
-        console.error("Raw cart_items value:", metadata.cart_items);
-        throw new Error(
-          `Invalid cart items data in session metadata: ${parseError instanceof Error ? parseError.message : "Unknown error"}`
-        );
-      }
-    } else {
-      console.error("❌ No cart_items found in session metadata");
-      console.log("Available metadata:", metadata);
-      throw new Error("No cart items data found in session metadata");
+    if (!service_type || !service_id || !service_data) {
+      throw new Error("Missing required booking metadata");
     }
 
-    if (!Array.isArray(cartItems) || cartItems.length === 0) {
-      throw new Error("Cart items array is empty or invalid");
-    }
-
-    if (!metadata.guest_email) {
-      throw new Error("Guest email is required but missing from metadata");
+    if (!guest_email) {
+      throw new Error("Guest email is required but missing");
     }
 
     const booking = await prisma.booking.create({
       data: {
-        guestName: metadata.guest_name || "",
-        guestEmail: metadata.guest_email,
-        guestMobile: metadata.guest_phone || "",
-        guestNationality: metadata.guest_nationality || "",
-        remarks: metadata.remarks || "",
-        status: "Confirmed",
+        guestName: guest_name || "",
+        guestEmail: guest_email,
+        guestMobile: guest_phone || "",
+        guestNationality: guest_nationality || "",
+        remarks: remarks || "",
         agreedToTerms: true,
-        items: {
-          create: cartItems.map((item: any) => {
-            console.log("Creating booking item:", item);
-            return {
-              packageId: item.packageId, // This should be the UUID string
-              travelers: parseInt(item.travelers.toString()) || 1,
-              startDate: new Date(item.startDate),
-            };
-          }),
-        },
-      },
-      include: {
-        items: {
-          include: {
-            package: true,
-          },
-        },
+        status: "Confirmed",
+        serviceType: service_type as any,
+        serviceId: service_id,
+        serviceData: JSON.parse(service_data),
       },
     });
 
@@ -154,14 +111,7 @@ const handleCheckoutSessionCompleted = async (
     try {
       const bookingWithPayments = await prisma.booking.findUnique({
         where: { id: booking.id },
-        include: {
-          items: {
-            include: {
-              package: true,
-            },
-          },
-          payments: true,
-        },
+        include: { payments: true },
       });
 
       if (bookingWithPayments) {
@@ -169,21 +119,10 @@ const handleCheckoutSessionCompleted = async (
       }
     } catch (pdfError) {
       console.error("❌ Failed to generate booking PDF:", pdfError);
-      // Don't throw - booking creation should still succeed
     }
   } catch (error) {
     console.error("❌ Error creating booking from checkout session:", error);
-    console.error("Session details for debugging:", {
-      sessionId: session.id,
-      paymentIntent: session.payment_intent,
-      paymentStatus: session.payment_status,
-      amountTotal: session.amount_total,
-      currency: session.currency,
-      metadata: session.metadata,
-    });
-
-    // Re-throw to ensure webhook fails and Stripe retries
-    throw error;
+    throw error; // Let Stripe retry if something fails
   }
 };
 

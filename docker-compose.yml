@@ -34,6 +34,25 @@ services:
       - blog-thumbnails:/app/apps/blog-service/uploads/blog-thumbnails
     networks:
       - app-network
+    
+  tour-service:
+    build:
+      context: .
+      dockerfile: apps/tour-service/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./apps/tour-service/.env
+    container_name: tour-service
+    ports:
+      - "5007:5007"
+    depends_on:
+      - rabbitmq
+      - postgres
+    volumes:
+      - tour-thumbnails:/app/apps/tour-service/uploads/tour-thumbnails
+    networks:
+      - app-network
 
   booking-service:
     build:
@@ -172,6 +191,7 @@ volumes:
   pgdata-dev:
   redisDB:
   blog-thumbnails:
+  tour-thumbnails:
   package-thumbnails:
   location-images:
   booking-confirmations:

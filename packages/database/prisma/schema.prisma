@@ -80,6 +80,7 @@ model PackageCategory {
   updatedAt DateTime  @updatedAt
 
   packages  Package[]
+  tours     Tour[] 
 }
 
 model PackageFeature {
@@ -156,7 +157,6 @@ model Package {
   itineraries         PackageItineraryOnPackage[]
   services            PackageServiceOnPackage[]
   enquiries           Enquiry[]
-  bookingItems        BookingItem[]
 
   tag                 PackageTag @default(Regular)
 }
@@ -218,6 +218,7 @@ model Location {
   updatedAt DateTime @updatedAt
 
   packages  Package[] 
+  tours     Tour[] 
 }
 
 model Booking {
@@ -236,32 +237,28 @@ model Booking {
 
   status          BookingStatus  @default(Pending)
 
+  serviceType          BookingServiceType  
+  serviceId            String   
+  serviceData          Json     
+
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  items           BookingItem[]
-
   payments Payment[]
-}
-
-model BookingItem {
-  id         String   @id @default(uuid())
-  bookingId  String
-  packageId  String
-  travelers  Int
-  startDate  DateTime
-
-  booking    Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  package    Package  @relation(fields: [packageId], references: [id])
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 }
 
 enum BookingStatus {
   Pending
   Confirmed
   Cancelled
+}
+
+enum BookingServiceType {
+  Package
+  Tour
+  Hotel
+  Activity
+  Transport
 }
 
 enum Availability {
@@ -328,4 +325,34 @@ enum PaymentStatus {
   payment_failed
   processing
   succeeded
+}
+
+model Tour {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(255)
+  slug        String
+  description String   @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  tourAvailability        TourAvailability
+  tag         TourTag @default(Regular)  
+  imageUrl    String   @db.Text
+  categoryId  String
+  category    PackageCategory @relation(fields: [categoryId], references: [id])
+
+  locationId  String
+  location    Location        @relation(fields: [locationId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum TourTag {
+  Regular
+  Popular
+  Top
+}
+enum TourAvailability {
+  Available
+  SoldOut
+  ComingSoon
 }

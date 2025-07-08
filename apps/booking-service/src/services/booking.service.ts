@@ -1,10 +1,4 @@
-import {
-  prisma,
-  Prisma,
-  Booking,
-  BookingItem,
-  BookingStatus,
-} from "@repo/database";
+import { prisma, Booking, BookingStatus, BookingServiceType } from "@repo/database";
 
 export const BookingService = {
   createBooking: async (data: {
@@ -15,51 +9,33 @@ export const BookingService = {
     guestNationality?: string | null;
     remarks?: string | null;
     agreedToTerms?: boolean;
-    items: {
-      packageId: string;
-      travelers: number;
-      startDate: Date;
-    }[];
+    serviceType: BookingServiceType;
+    serviceId: string;
+    serviceData: any;
   }): Promise<Booking> => {
-    const booking = await prisma.booking.create({
+    return await prisma.booking.create({
       data: {
-        ...(data.userId && { user: { connect: { id: data.userId } } }),
+        ...(data.userId && { userId: data.userId }),
         guestName: data.guestName ?? null,
         guestEmail: data.guestEmail ?? null,
         guestMobile: data.guestMobile ?? null,
         guestNationality: data.guestNationality ?? null,
         remarks: data.remarks ?? null,
         agreedToTerms: data.agreedToTerms ?? false,
-        items: {
-          create: data.items.map((item) => ({
-            package: { connect: { id: item.packageId } },
-            travelers: item.travelers,
-            startDate: item.startDate,
-          })),
-        },
+        serviceType: data.serviceType,
+        serviceId: data.serviceId,
+        serviceData: data.serviceData,
       },
-      include: { items: true },
     });
-
-    return booking;
   },
+
   getAllBookings: async (): Promise<any[]> => {
     const bookings = await prisma.booking.findMany({
       orderBy: { createdAt: "desc" },
-      include: {
-        items: {
-          include: {
-            package: {
-              select: { name: true },
-            },
-          },
-        },
-        payments: true,
-      },
+      include: { payments: true },
     });
 
     return bookings.map((booking) => {
-      const firstItem = booking.items[0];
       const succeededPayments = booking.payments.filter(
         (p) => p.status === "succeeded"
       );
@@ -68,41 +44,27 @@ export const BookingService = {
         id: booking.id,
         guestName: booking.guestName,
         guestEmail: booking.guestEmail,
+        guestMobile: booking.guestMobile,
         status: booking.status,
+        serviceType: booking.serviceType,
+        serviceId: booking.serviceId,
         createdAt: booking.createdAt,
-        packageName: firstItem?.package?.name ?? null,
-        travelDate: firstItem?.startDate ?? null,
-        travelers: firstItem?.travelers ?? 0,
         paymentStatus: booking.payments[0]?.status ?? "pending",
-        totalAmountPaid: succeededPayments.reduce(
-          (sum, p) => sum + p.amount,
-          0
-        ),
+        totalAmountPaid: succeededPayments.reduce((sum, p) => sum + p.amount, 0),
         currency: succeededPayments[0]?.currency ?? null,
       };
     });
   },
+
   getBookingById: async (id: string): Promise<any | null> => {
     const booking = await prisma.booking.findUnique({
       where: { id },
-      include: {
-        items: {
-          include: {
-            package: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-        payments: true,
-      },
+      include: { payments: true },
     });
 
     if (!booking) return null;
 
-    const transformed = {
+    return {
       id: booking.id,
       guestName: booking.guestName,
       guestEmail: booking.guestEmail,
@@ -112,14 +74,10 @@ export const BookingService = {
       agreedToTerms: booking.agreedToTerms,
       status: booking.status,
       confirmationPdfPath: booking.confirmationPdfPath,
+      serviceType: booking.serviceType,
+      serviceId: booking.serviceId,
+      serviceData: booking.serviceData,
       createdAt: booking.createdAt,
-      items: booking.items.map((item) => ({
-        id: item.id,
-        packageId: item.package.id,
-        packageName: item.package.name,
-        travelers: item.travelers,
-        startDate: item.startDate,
-      })),
       payments: booking.payments.map((payment) => ({
         provider: payment.provider,
         providerRefId: payment.providerRefId,
@@ -132,33 +90,16 @@ export const BookingService = {
         createdAt: payment.createdAt,
       })),
     };
-
-    return transformed;
   },
+
   getBookingsByEmail: async (email: string): Promise<any[]> => {
     const bookings = await prisma.booking.findMany({
-      where: {
-        guestEmail: email,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        items: {
-          include: {
-            package: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-        payments: true,
-      },
+      where: { guestEmail: email },
+      orderBy: { createdAt: "desc" },
+      include: { payments: true },
     });
 
     return bookings.map((booking) => {
-      const firstItem = booking.items[0];
       const succeededPayments = booking.payments.filter(
         (p) => p.status === "succeeded"
       );
@@ -167,44 +108,28 @@ export const BookingService = {
         id: booking.id,
         guestName: booking.guestName,
         guestEmail: booking.guestEmail,
+        guestMobile: booking.guestMobile,
         status: booking.status,
+        serviceType: booking.serviceType,
+        serviceId: booking.serviceId,
         createdAt: booking.createdAt,
-        packageName: firstItem?.package?.name ?? null,
-        travelDate: firstItem?.startDate ?? null,
-        travelers: firstItem?.travelers ?? 0,
         paymentStatus: booking.payments[0]?.status ?? "pending",
-        totalAmountPaid: succeededPayments.reduce(
-          (sum, p) => sum + p.amount,
-          0
-        ),
+        totalAmountPaid: succeededPayments.reduce((sum, p) => sum + p.amount, 0),
         currency: succeededPayments[0]?.currency ?? null,
       };
     });
   },
-  updateBookingItem: async (
-    id: string,
-    data: Partial<Prisma.BookingItemUpdateInput>
-  ): Promise<BookingItem | null> => {
-    return await prisma.bookingItem.update({
-      where: { id },
-      data,
-    });
-  },
+
   updateBookingStatus: async (
-    bookingId: string | undefined,
+    bookingId: string,
     status: BookingStatus
   ): Promise<Booking | null> => {
     return await prisma.booking.update({
       where: { id: bookingId },
       data: { status },
-      include: { items: true },
     });
   },
-  deleteBookingItem: async (id: string): Promise<BookingItem | null> => {
-    return await prisma.bookingItem.delete({
-      where: { id },
-    });
-  },
+
   deleteBooking: async (id: string): Promise<Booking | null> => {
     return await prisma.booking.delete({
       where: { id },

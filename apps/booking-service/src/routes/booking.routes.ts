@@ -2,7 +2,6 @@ import { Router } from "express";
 import { bookingController } from "../controllers";
 import {
   validateCreateBooking,
-  validateUpdateBookingItem,
   validateBookingIdParam,
   validateUpdateBookingStatus,
   validateEmailQuery,
@@ -31,7 +30,7 @@ const publicKey = Buffer.from(
 // ✅ PUBLIC ROUTES
 //
 
-// Create a new booking (public access)
+// Create a new booking (guest or user)
 router.post(
   "/",
   validateCreateBooking,
@@ -39,10 +38,28 @@ router.post(
   bookingController.createBooking
 );
 
+// Get booking by ID (public)
+router.get(
+  "/:bookingId",
+  validateBookingIdParam,
+  validateRequest,
+  bookingController.getBookingById
+);
+
+// Download confirmation PDF (public or auth)
+router.get(
+  "/:bookingId/download-confirmation",
+  bookingController.downloadBookingConfirmation
+);
+
+// Get all bookings (admin)
+router.get("/", bookingController.getAllBookings);
+
 //
 // 🔒 PROTECTED ROUTES (Admin/Internal Use)
 //
 
+// Get all bookings by user email
 router.post(
   "/userbooking",
   deserializeUser(excludedFields, publicKey),
@@ -52,34 +69,7 @@ router.post(
   bookingController.getBookingByEmail
 );
 
-// Get booking by ID (public access)
-router.get(
-  "/:bookingId",
-  validateBookingIdParam,
-  validateRequest,
-  bookingController.getBookingById
-);
-
-router.get("/", bookingController.getAllBookings);
-
-router.get(
-  "/:bookingId/download-confirmation",
-  bookingController.downloadBookingConfirmation
-);
-
-//
-// 🔒 PROTECTED ROUTES (Admin/Internal Use)
-//
-
-router.patch(
-  "/item/:id",
-  deserializeUser(excludedFields, publicKey),
-  requireUser,
-  validateUpdateBookingItem,
-  validateRequest,
-  bookingController.updateBookingItem
-);
-
+// Update booking status
 router.patch(
   "/:bookingId/status",
   deserializeUser(excludedFields, publicKey),
@@ -89,15 +79,7 @@ router.patch(
   bookingController.updateBookingStatus
 );
 
-router.delete(
-  "/item/:id",
-  deserializeUser(excludedFields, publicKey),
-  requireUser,
-  validateUpdateBookingItem,
-  validateRequest,
-  bookingController.deleteBookingItem
-);
-
+// Delete a booking
 router.delete(
   "/:bookingId",
   deserializeUser(excludedFields, publicKey),
