@@ -118,8 +118,8 @@ const createCheckoutSession = async (req: Request, res: Response) => {
           },
           address: guestNationality
             ? {
-                country: getCountryCodeFromNationality(guestNationality),
-              }
+              country: getCountryCodeFromNationality(guestNationality),
+            }
             : undefined,
         });
       }
@@ -191,192 +191,167 @@ const createCheckoutSession = async (req: Request, res: Response) => {
 };
 
 const createPaymentIntent = async (req: Request, res: Response) => {
-  console.log("Creating payment intent with body:", req.body);
-
   const {
-    bookingId,
     amount,
-    currency = "usd",
-    provider,
-    method,
-    customerInfo,
+    currency = "aed",
     metadata,
   } = req.body;
 
-  if (!bookingId || !amount || !provider || !method) {
+  if (!amount || !metadata) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  if (!validProviders.includes(provider)) {
-    throw new ApiError(400, "Unsupported payment provider");
-  }
+  try {
+    const {
+      guestName,
+      guestEmail,
+      guestMobile,
+      guestNationality,
+      serviceData, // This contains package info
+      totalAmount,
+      remarks,
+      paymentMethod,
+      serviceType,
+      serviceId,
+    } = metadata;
 
-  if (!validMethods.includes(method)) {
-    throw new ApiError(400, "Unsupported payment method");
-  }
-
-  const providerKey = provider.toLowerCase() as PaymentProviderKey;
-
-  if (!paymentProviders[providerKey]) {
-    return res
-      .status(400)
-      .json({ error: "Payment provider integration not available" });
-  }
-
-  let providerRefId = "";
-  let clientSecret = "";
-  let stripeCustomerId: string | null = null;
-
-  if (provider === "Stripe") {
-    const booking = await prisma.booking.findUnique({
-      where: { id: bookingId },
-      select: {
-        guestName: true,
-        guestEmail: true,
-        guestMobile: true,
-        guestNationality: true,
-      },
-    });
-
-    if (!booking) {
-      throw new ApiError(404, "Booking not found");
+    if (!guestEmail) {
+      return res.status(400).json({
+        error: "Missing guest email in metadata",
+      });
     }
 
-    let stripeCustomer;
-
+    // Handle Stripe customer creation/retrieval (same as your existing code)
+    let stripeCustomer = null;
     try {
-      const existingCustomers = (await paymentProviders.stripe.customers.list({
-        email: booking.guestEmail ?? undefined,
+      const existingCustomers = await paymentProviders.stripe.customers.list({
+        email: guestEmail,
         limit: 1,
-      })) as Stripe.ApiList<Stripe.Customer>;
+      });
 
-      if (existingCustomers.data.length > 0) {
-        if (existingCustomers.data[0]) {
-          stripeCustomer = await paymentProviders.stripe.customers.update(
-            existingCustomers.data[0].id,
-            {
-              name: booking.guestName ?? undefined,
-              phone: booking.guestMobile || customerInfo?.phone,
-              metadata: {
-                booking_id: bookingId,
-                app_user_id: customerInfo?.userId || "guest",
-                nationality:
-                  booking.guestNationality || customerInfo?.nationality || "",
-                last_updated: new Date().toISOString(),
-                last_booking_amount: amount.toString(),
-              },
-            }
-          );
-        }
-      } else {
-        stripeCustomer = await paymentProviders.stripe.customers.create({
-          name: booking.guestName ?? undefined,
-          email: booking.guestEmail ?? undefined,
-          phone: booking.guestMobile ?? customerInfo?.phone ?? undefined,
+      if (existingCustomers.data.length > 0 && existingCustomers.data[0]) {
+        stripeCustomer = existingCustomers.data[0];
+        console.log("📍 Using existing customer:", stripeCustomer.id);
+
+        // Update customer info
+        await paymentProviders.stripe.customers.update(stripeCustomer.id, {
+          name: guestName,
+          phone: guestMobile,
           metadata: {
-            booking_id: bookingId,
-            app_user_id: customerInfo?.userId || "guest",
-            nationality:
-              booking.guestNationality || customerInfo?.nationality || "",
-            created_from: "royal_dusk_app",
-            first_booking_date: new Date().toISOString(),
-            first_booking_amount: amount.toString(),
+            nationality: guestNationality || "",
+            last_updated: new Date().toISOString(),
+            created_from: "royal_dusk_mobile",
           },
-          address:
-            booking.guestNationality || customerInfo?.nationality
-              ? {
-                  country: getCountryCodeFromNationality(
-                    booking.guestNationality || customerInfo?.nationality
-                  ),
-                }
-              : undefined,
         });
-      }
+      } else if (guestEmail) {
+        console.log("✨ Creating new customer for:", guestEmail);
 
-      if (stripeCustomer) {
-        stripeCustomerId = stripeCustomer.id;
+        stripeCustomer = await paymentProviders.stripe.customers.create({
+          name: guestName,
+          email: guestEmail,
+          phone: guestMobile,
+          metadata: {
+            nationality: guestNationality || "",
+            created_from: "royal_dusk_mobile",
+            created_at: new Date().toISOString(),
+          },
+          address: guestNationality
+            ? {
+              country: getCountryCodeFromNationality(guestNationality),
+            }
+            : undefined,
+        });
+        console.log("✅ Created new customer:", stripeCustomer.id);
       }
     } catch (customerError) {
-      console.error("❌ Error handling Stripe customer:", customerError);
-      // Continue without customer if creation fails, but log the error
+      console.error("⚠️ Customer creation/retrieval failed:", customerError);
       stripeCustomer = null;
     }
 
-    const paymentIntentData = {
-      amount,
-      currency,
-      ...(stripeCustomerId && { customer: stripeCustomerId }),
-      receipt_email: booking.guestEmail ?? undefined,
+    // Create ephemeral key for customer (required for mobile Payment Sheet)
+    let ephemeralKey = null;
+    if (stripeCustomer?.id) {
+      try {
+        ephemeralKey = await paymentProviders.stripe.ephemeralKeys.create(
+          { customer: stripeCustomer.id },
+          { apiVersion: '2023-10-16' }
+        );
+        console.log("🔑 Created ephemeral key for customer");
+      } catch (ephemeralError) {
+        console.error("⚠️ Ephemeral key creation failed:", ephemeralError);
+      }
+    }
+
+    // Create Payment Intent
+    const paymentIntentData: Stripe.PaymentIntentCreateParams = {
+      amount: Math.round(amount), // Amount in smallest currency unit (fils for AED)
+      currency: currency.toLowerCase(),
       metadata: {
-        booking_id: bookingId,
-        guest_name: booking.guestName,
-        guest_email: booking.guestEmail,
-        guest_phone: booking.guestMobile || customerInfo?.phone || "",
-        guest_nationality:
-          booking.guestNationality || customerInfo?.nationality || "",
-        app_user_id: customerInfo?.userId || "guest",
-        payment_source: "royal_dusk_mobile_app",
-        ...metadata,
+        guest_name: guestName || "",
+        guest_email: guestEmail,
+        guest_phone: guestMobile || "",
+        guest_nationality: guestNationality || "",
+        total_amount: amount.toString(),
+        currency: currency.toUpperCase(),
+        booking_source: "royal_dusk_mobile",
+        remarks: remarks || "",
+        payment_method: paymentMethod || "Credit Card",
+        service_type: serviceType || "Package",
+        service_id: serviceId?.toString() || "",
+        service_data: serviceData || "", // Package details
       },
       automatic_payment_methods: {
         enabled: true,
       },
     };
 
-    console.log("🔄 Creating payment intent with data:", {
-      customer: stripeCustomerId,
+    // Add customer to Payment Intent if available
+    if (stripeCustomer?.id) {
+      paymentIntentData.customer = stripeCustomer.id;
+    }
+
+    console.log("🔄 Creating Payment Intent with data:", {
+      hasCustomer: !!paymentIntentData.customer,
       amount,
       currency,
-      hasMetadata: !!paymentIntentData.metadata,
+      metadataKeys: Object.keys(paymentIntentData.metadata || {}),
     });
 
-    // Create the payment intent
-    const intent =
-      await paymentProviders.stripe.paymentIntents.create(paymentIntentData);
+    // Create the Payment Intent
+    const paymentIntent = await paymentProviders.stripe.paymentIntents.create(paymentIntentData);
 
-    providerRefId = intent.id;
-    clientSecret = intent.client_secret!;
-
-    console.log("✅ Payment intent created:", {
-      id: intent.id,
-      customer: stripeCustomerId,
-      amount: intent.amount,
-      currency: intent.currency,
-    });
-  } else if (provider === "Razorpay") {
-    // Handle Razorpay as before
-    const order = await paymentProviders.razorpay.orders.create({
+    console.log("✅ Payment Intent created successfully:", {
+      paymentIntentId: paymentIntent.id,
+      customerId: stripeCustomer?.id,
       amount,
       currency,
-      receipt: bookingId,
     });
-    providerRefId = order.id;
-    clientSecret = order.id;
+
+    return res.json({
+      client_secret: paymentIntent.client_secret,
+      customer_id: stripeCustomer?.id || null,
+      ephemeral_key: ephemeralKey?.secret || null,
+      payment_intent_id: paymentIntent.id,
+      message: "Payment Intent created successfully",
+    });
+
+  } catch (error) {
+    console.error("❌ Payment Intent creation failed:", error);
+
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        ...((error as any).type && { stripeErrorType: (error as any).type }),
+        ...((error as any).code && { stripeErrorCode: (error as any).code }),
+      });
+    }
+
+    return res.status(500).json({
+      error: "Failed to create payment intent",
+      details: error instanceof Error ? error.message : "Unknown error",
+    });
   }
-
-  // Save payment record in your database
-  await prisma.payment.create({
-    data: {
-      bookingId,
-      provider,
-      method,
-      providerRefId,
-      status: "pending",
-      amount,
-      currency,
-    },
-  });
-
-  // 🎯 Return enhanced response with customer information
-  return res.json({
-    clientSecret,
-    customerId: stripeCustomerId,
-    message: "Payment intent created successfully",
-    ...(stripeCustomerId && {
-      customerCreated: true,
-      customerType: "real_customer", // Not guest!
-    }),
-  });
 };
 
 const getConfirmationPdf = async (req: Request, res: Response) => {

@@ -18,8 +18,11 @@ const handleStripeWebhook = async (
   req: Request,
   res: Response
 ): Promise<void> => {
+  console.log(`🎯 Stripe webhook received: ${req.method} ${req.url}`);
+
   const sig = req.headers["stripe-signature"];
   if (!sig || typeof sig !== "string") {
+    console.log(`❌ Missing Stripe signature in webhook request`);
     throw new ApiError(400, "Missing Stripe signature.");
   }
 
@@ -30,23 +33,30 @@ const handleStripeWebhook = async (
       sig,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
+    console.log(`✅ Webhook signature verified successfully for event: ${event.type}`);
   } catch (err) {
     console.error("❌ Webhook signature verification failed:", err);
     throw new ApiError(400, `Webhook Error: ${(err as Error).message}`);
   }
 
+  console.log(`📨 Processing webhook event: ${event.type} with ID: ${event.id}`);
+
   if (event.type === "checkout.session.completed") {
+    console.log(`🛒 Processing checkout session completed event`);
     await handleCheckoutSessionCompleted(
       event.data.object as Stripe.Checkout.Session
     );
   } else if (event.type.startsWith("payment_intent.")) {
+    console.log(`💳 Processing payment intent event: ${event.type}`);
     await handlePaymentIntentEvents(event);
   } else if (event.type.startsWith("charge.")) {
+    console.log(`⚡ Processing charge event: ${event.type}`);
     await handleChargeEvents(event);
   } else {
     console.log(`ℹ️ Ignored event type: ${event.type}`);
   }
 
+  console.log(`✅ Webhook processing completed for event: ${event.type}`);
   res.status(200).json({ received: true });
 };
 
@@ -126,32 +136,170 @@ const handleCheckoutSessionCompleted = async (
   }
 };
 
-// 🔄 EXISTING: Handle payment intent events (now updates existing bookings)
+// 🆕 Handle successful payment intents (for mobile payments)
+const handlePaymentIntentSucceeded = async (intent: Stripe.PaymentIntent) => {
+  try {
+    // Check if booking already exists (from checkout session or previous processing)
+    const existingPayment = await prisma.payment.findFirst({
+      where: { providerRefId: intent.id },
+      include: { booking: true },
+    });
+
+    if (existingPayment) {
+      console.log(`✅ Booking already exists for payment intent ${intent.id}`);
+      return;
+    }
+
+    // Check if this payment intent has metadata for booking creation
+    const metadata = intent.metadata;
+
+    if (!metadata || (!metadata.serviceType && !metadata.service_type)) {
+      console.log(`ℹ️ No booking metadata found for payment intent ${intent.id}`);
+      return;
+    }
+
+    // Handle both web (service_type) and mobile (serviceType) metadata formats
+    const {
+      serviceType,
+      serviceId,
+      serviceData,
+      guestName,
+      guestEmail,
+      guestMobile,
+      guestNationality,
+      remarks,
+      // Web format fallbacks
+      service_type,
+      service_id,
+      service_data,
+      guest_name,
+      guest_email,
+      guest_phone,
+      guest_nationality,
+    } = metadata;
+
+    // Use mobile format first, fallback to web format
+    const finalServiceType = serviceType || service_type;
+    const finalServiceId = serviceId || service_id;
+    const finalServiceData = serviceData || service_data;
+    const finalGuestName = guestName || guest_name;
+    const finalGuestEmail = guestEmail || guest_email;
+    const finalGuestMobile = guestMobile || guest_phone;
+    const finalGuestNationality = guestNationality || guest_nationality;
+
+    if (!finalServiceType || !finalServiceId || !finalServiceData) {
+      console.log(`⚠️ Missing required booking metadata for payment intent ${intent.id}`);
+      return;
+    }
+
+    if (!finalGuestEmail) {
+      throw new Error("Guest email is required but missing");
+    }
+
+    console.log(`🔄 Creating booking from payment intent ${intent.id} for ${finalGuestEmail}`);
+
+    // Create booking (exactly like your checkout session handler)
+    const booking = await prisma.booking.create({
+      data: {
+        guestName: finalGuestName || "",
+        guestEmail: finalGuestEmail,
+        guestMobile: finalGuestMobile || "",
+        guestNationality: finalGuestNationality || "",
+        remarks: remarks || "",
+        agreedToTerms: true,
+        status: "Confirmed",
+        serviceType: finalServiceType as any,
+        serviceId: finalServiceId,
+        serviceData: JSON.parse(finalServiceData),
+      },
+    });
+
+    // Create payment record
+    const payment = await prisma.payment.create({
+      data: {
+        bookingId: booking.id,
+        provider: "Stripe",
+        method: "Card",
+        providerRefId: intent.id,
+        status: PaymentStatus.succeeded,
+        amount: intent.amount || 0,
+        currency: (intent.currency || "aed").toUpperCase(),
+        chargeId: null,
+        receiptUrl: null,
+      },
+    });
+
+    // Generate PDF
+    try {
+      const bookingWithPayments = await prisma.booking.findUnique({
+        where: { id: booking.id },
+        include: { payments: true },
+      });
+
+      if (bookingWithPayments) {
+        await generateAndStoreBookingPdf(bookingWithPayments);
+      }
+    } catch (pdfError) {
+      console.error("❌ Failed to generate booking PDF:", pdfError);
+    }
+
+    console.log(`✅ Created booking ${booking.id} from payment intent ${intent.id}`);
+  } catch (error) {
+    console.error("❌ Error creating booking from payment intent:", error);
+    throw error;
+  }
+};
+
+// 🔄 Handle payment intent events (now creates bookings for mobile payments)
 const handlePaymentIntentEvents = async (event: Stripe.Event) => {
   const intent = event.data.object as Stripe.PaymentIntent;
   const paymentId = intent.id;
+
+  console.log(`🔍 Processing payment intent event: ${event.type} for ${paymentId}`);
+  console.log(`📊 Payment Intent basic info:`, {
+    id: intent.id,
+    amount: intent.amount,
+    currency: intent.currency,
+    status: intent.status,
+    hasMetadata: !!intent.metadata,
+    metadataKeys: intent.metadata ? Object.keys(intent.metadata) : 'NO_METADATA',
+  });
 
   let status: PaymentStatus | null = null;
 
   switch (event.type) {
     case "payment_intent.created":
       status = PaymentStatus.pending;
+      console.log(`✅ Payment intent created: ${paymentId}`);
       break;
     case "payment_intent.processing":
       status = PaymentStatus.processing;
+      console.log(`🔄 Payment intent processing: ${paymentId}`);
       break;
     case "payment_intent.succeeded":
       status = PaymentStatus.succeeded;
+      console.log(`🎉 Payment intent succeeded: ${paymentId} - triggering booking creation`);
+      // 🆕 Handle booking creation for mobile payments
+      try {
+        await handlePaymentIntentSucceeded(intent);
+        console.log(`✅ Booking creation completed for payment intent: ${paymentId}`);
+      } catch (bookingError) {
+        console.error(`❌ Booking creation failed for payment intent ${paymentId}:`, bookingError);
+        // Don't throw here to allow payment status update to proceed
+      }
       break;
     case "payment_intent.payment_failed":
       status = PaymentStatus.payment_failed;
+      console.log(`❌ Payment intent failed: ${paymentId}`);
       break;
     case "payment_intent.canceled":
       status = PaymentStatus.canceled;
+      console.log(`🚫 Payment intent canceled: ${paymentId}`);
       break;
   }
 
   if (status) {
+    console.log(`📝 Updating payment status to: ${status} for ${paymentId}`);
     try {
       const updated = await prisma.payment.update({
         where: { providerRefId: paymentId },
@@ -159,19 +307,24 @@ const handlePaymentIntentEvents = async (event: Stripe.Event) => {
         include: { booking: true },
       });
 
+      console.log(`✅ Payment status updated successfully for ${paymentId}`);
+
       if (
         status === PaymentStatus.succeeded &&
         updated.booking.status !== "Confirmed"
       ) {
+        console.log(`📝 Updating booking status to Confirmed for booking ${updated.bookingId}`);
         await prisma.booking.update({
           where: { id: updated.bookingId },
           data: { status: "Confirmed" },
         });
+        console.log(`✅ Booking status updated to Confirmed`);
       }
 
       if (
         [PaymentStatus.payment_failed, PaymentStatus.canceled].includes(status)
       ) {
+        console.log(`🚫 Handling failed payment for booking ${updated.bookingId}`);
         await handleFailedPayment(updated.bookingId);
       }
     } catch (error) {
@@ -181,13 +334,15 @@ const handlePaymentIntentEvents = async (event: Stripe.Event) => {
         error.message.includes("Record to update not found")
       ) {
         console.log(
-          `⏳ Payment record not found for ${paymentId}, might be processed by checkout session later`
+          `⏳ Payment record not found for ${paymentId}, might be processed by other events later`
         );
       } else {
         console.error(`❌ Error updating payment intent ${paymentId}:`, error);
         throw error;
       }
     }
+  } else {
+    console.log(`ℹ️ No status update needed for event type: ${event.type}`);
   }
 };
 
@@ -270,18 +425,3 @@ const handleFailedPayment = async (bookingId: string) => {
 };
 
 export default { handleStripeWebhook: asyncHandler(handleStripeWebhook) };
-
-// 🆕 OPTIONAL: Add FailedBooking model to your Prisma schema
-/*
-model FailedBooking {
-  id              String   @id @default(cuid())
-  sessionId       String   @unique
-  paymentIntentId String?
-  metadata        Json
-  error           String
-  createdAt       DateTime @default(now())
-  reviewed        Boolean  @default(false)
-  
-  @@map("failed_bookings")
-}
-*/

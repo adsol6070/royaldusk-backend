@@ -4,8 +4,8 @@ type AmqpConnection =
   ReturnType<typeof amqplib.connect> extends Promise<infer T> ? T : never;
 type AmqpChannel =
   ReturnType<AmqpConnection["createChannel"]> extends Promise<infer T>
-    ? T
-    : never;
+  ? T
+  : never;
 
 class RabbitMQ {
   private connection: AmqpConnection | null = null;
@@ -24,8 +24,7 @@ class RabbitMQ {
         try {
           console.log("Attempting to connect to RabbitMQ...");
           this.connection = await amqplib.connect(
-            // `amqp://user:password@localhost:5672`
-            `amqp://user:password@rabbitmq:5672`
+            `amqp://user:password@localhost:5672`
           );
 
           this.channel = await this.connection.createChannel();
