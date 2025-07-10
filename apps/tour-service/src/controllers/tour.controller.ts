@@ -7,8 +7,9 @@ import fs from "fs";
 
 const createTour = async (req: Request, res: Response): Promise<void> => {
   const filename = req.file?.filename || "";
+  const baseUrl = process.env.BASE_URL;
   const image = filename
-  ? `http://localhost:8081/tour-service/uploads/tour-thumbnails/${filename}`
+  ? `${baseUrl}/tour-service/uploads/tour-thumbnails/${filename}`
   : "";
 
   const tourData = {
@@ -19,7 +20,6 @@ const createTour = async (req: Request, res: Response): Promise<void> => {
   };
 
   const newTour = await TourService.createTour(tourData);
-  console.log("newTour:", newTour);
   res.status(201).json({
     success: true,
     message: "Tour created successfully",
@@ -58,6 +58,7 @@ const updateTour = async (
   res: Response
 ): Promise<void> => {
   const tourId = req.params.id;
+  const baseUrl = process.env.BASE_URL;
 
   const existingTour = await TourService.getTourByID({ id: tourId });
   if (!existingTour) {
@@ -88,7 +89,7 @@ const updateTour = async (
       });
     }
 
-    data.imageUrl = `http://localhost:8081/tour-service/uploads/tour-thumbnails/${req.file.filename}`;
+    data.imageUrl = `${baseUrl}tour-service/uploads/tour-thumbnails/${req.file.filename}`;
   }
 
   const updatedTour = await TourService.updateTour(tourId, data);

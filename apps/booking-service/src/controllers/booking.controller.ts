@@ -116,11 +116,13 @@ const downloadBookingConfirmation = async (req: Request, res: Response): Promise
     res.status(403).send("Forbidden");
     return;
   }
-
+console.log("booking confirmation bookingid", bookingId)
+console.log("booking confirmation booking", booking)
   const response = await fetch(
     `http://localhost:8081/payment-service/payment/confirmation-pdf/${bookingId}`,
     { method: "GET" }
   );
+  console.log("response booking confirmation", response)
 
   if (!response.ok) {
     throw new ApiError(500, "Failed to download booking confirmation PDF");

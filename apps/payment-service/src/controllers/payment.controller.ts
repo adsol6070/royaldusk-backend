@@ -382,13 +382,10 @@ const createPaymentIntent = async (req: Request, res: Response) => {
 const getConfirmationPdf = async (req: Request, res: Response) => {
   const { bookingId } = req.params;
 
-  console.log("Fetching confirmation PDF for bookingId:", bookingId);
-
   const filePath = path.join(
     __dirname,
     `../../uploads/booking-confirmations/booking-${bookingId}.pdf`
   );
-
   if (!fs.existsSync(filePath)) {
     return res.status(404).json({ message: "PDF not found" });
   }

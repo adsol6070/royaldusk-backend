@@ -6,7 +6,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import config from "config";
 import unifiedRoutes from "./routes";
-import { errorHandler } from "@repo/middlewares/errorHandler"
+import { errorHandler } from "@repo/middlewares/errorHandler";
 import { ApiError } from "@repo/utils/ApiError";
 import path from "path";
 

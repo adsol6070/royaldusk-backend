@@ -105,8 +105,7 @@ export const BookingConfirmationPdfComponent = ({ booking }: Props) => (
         <View>
           <Text style={styles.headingText}>Booking Confirmation</Text>
           <Text style={styles.metaText}>
-            Invoice #:{" "}
-            {booking.invoiceNumber || booking.id.slice(0, 8).toUpperCase()}
+            Invoice #: {booking.id.slice(0, 8).toUpperCase()}
           </Text>
           <Text style={styles.metaText}>GSTR No: 07ABCDE1234F1Z5</Text>
           <Text style={styles.metaText}>
@@ -118,56 +117,85 @@ export const BookingConfirmationPdfComponent = ({ booking }: Props) => (
       <View style={styles.section}>
         <Text style={styles.heading}>Guest Information</Text>
         <InfoRow label="Booking ID" value={booking.id} />
-        <InfoRow label="Name" value={booking.guestName} />
-        <InfoRow label="Email" value={booking.guestEmail} />
-        <InfoRow label="Mobile" value={booking.guestMobile} />
-        <InfoRow label="Nationality" value={booking.guestNationality} />
+        <InfoRow label="Name" value={booking.guestName || "N/A"} />
+        <InfoRow label="Email" value={booking.guestEmail || "N/A"} />
+        <InfoRow label="Mobile" value={booking.guestMobile || "N/A"} />
+        <InfoRow label="Nationality" value={booking.guestNationality || "N/A"} />
         <InfoRow label="Status" value={booking.status} />
         <InfoRow
           label="Booked On"
           value={new Date(booking.createdAt).toLocaleString()}
         />
+        {booking.remarks && (
+          <InfoRow label="Remarks" value={booking.remarks} />
+        )}
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.heading}>Package Details</Text>
-        {booking.items.map((item: any, i: number) => (
-          <View key={i}>
-            <InfoRow label="Package" value={item.package?.name || "N/A"} />
-            <InfoRow label="Travelers" value={String(item.travelers)} />
-            <InfoRow
-              label="Travel Date"
-              value={new Date(item.startDate).toLocaleDateString()}
-            />
-            <InfoRow label="Location" value={item.package?.location || "N/A"} />
-            <InfoRow
-              label="Duration"
-              value={`${item.package?.duration || 0} days`}
-            />
-          </View>
-        ))}
+        <Text style={styles.heading}>Service Details</Text>
+        <InfoRow label="Service Type" value={booking.serviceType} />
+        <InfoRow label="Service ID" value={booking.serviceId} />
+        
+        {/* Render service data based on service type */}
+        {booking.serviceType === "Package" && booking.serviceData && (
+          <ServiceDataRenderer serviceData={booking.serviceData} serviceType="Package" />
+        )}
+        {booking.serviceType === "Tour" && booking.serviceData && (
+          <ServiceDataRenderer serviceData={booking.serviceData} serviceType="Tour" />
+        )}
+        {booking.serviceType === "Hotel" && booking.serviceData && (
+          <ServiceDataRenderer serviceData={booking.serviceData} serviceType="Hotel" />
+        )}
+        {booking.serviceType === "Activity" && booking.serviceData && (
+          <ServiceDataRenderer serviceData={booking.serviceData} serviceType="Activity" />
+        )}
+        {booking.serviceType === "Transport" && booking.serviceData && (
+          <ServiceDataRenderer serviceData={booking.serviceData} serviceType="Transport" />
+        )}
       </View>
 
       <View style={styles.section}>
         <Text style={styles.heading}>Payment Information</Text>
-        {booking.payments.map((p: any, i: any) => (
-          <View key={i}>
-            <InfoRow label="Provider" value={p.provider} />
-            <InfoRow
-              label="Amount"
-              value={`${p.currency.toUpperCase()} ${(p.amount / 100).toFixed(2)}`}
-            />
-            <InfoRow
-              label="Card"
-              value={`${p.cardBrand} **** ${p.cardLast4}`}
-            />
-            <InfoRow
-              label="Date"
-              value={new Date(p.createdAt).toLocaleString()}
-            />
-            <InfoRow label="Status" value={p.status} />
-          </View>
-        ))}
+        {booking.payments && booking.payments.length > 0 ? (
+          booking.payments.map((payment: any, i: number) => (
+            <View key={i} style={{ marginBottom: 10 }}>
+              <InfoRow label="Provider" value={payment.provider} />
+              <InfoRow label="Method" value={payment.method} />
+              <InfoRow
+                label="Amount"
+                value={`${payment.currency.toUpperCase()} ${(payment.amount / 100).toFixed(2)}`}
+              />
+              <InfoRow label="Status" value={payment.status} />
+              {payment.cardBrand && payment.cardLast4 && (
+                <InfoRow
+                  label="Card"
+                  value={`${payment.cardBrand} **** ${payment.cardLast4}`}
+                />
+              )}
+              <InfoRow
+                label="Payment Date"
+                value={new Date(payment.createdAt).toLocaleString()}
+              />
+              {payment.providerRefId && (
+                <InfoRow label="Reference ID" value={payment.providerRefId} />
+              )}
+              {payment.receiptUrl && (
+                <InfoRow label="Receipt URL" value={payment.receiptUrl} />
+              )}
+              {payment.failureCode && (
+                <InfoRow label="Failure Code" value={payment.failureCode} />
+              )}
+              {payment.failureMessage && (
+                <InfoRow label="Failure Message" value={payment.failureMessage} />
+              )}
+              {payment.refunded && (
+                <InfoRow label="Refunded" value={payment.refunded ? "Yes" : "No"} />
+              )}
+            </View>
+          ))
+        ) : (
+          <InfoRow label="Payment Status" value="No payments found" />
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -186,6 +214,80 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
     <Text style={styles.value}>{value}</Text>
   </View>
 );
+
+// Component to render service data based on service type
+const ServiceDataRenderer = ({ serviceData, serviceType }: { serviceData: any; serviceType: string }) => {
+  // Common fields that might exist in serviceData
+  const commonFields = [
+    { key: 'name', label: 'Name' },
+    { key: 'title', label: 'Title' },
+    { key: 'description', label: 'Description' },
+    { key: 'location', label: 'Location' },
+    { key: 'duration', label: 'Duration' },
+    { key: 'travelers', label: 'Travelers' },
+    { key: 'guests', label: 'Guests' },
+    { key: 'startDate', label: 'Start Date' },
+    { key: 'endDate', label: 'End Date' },
+    { key: 'checkIn', label: 'Check In' },
+    { key: 'checkOut', label: 'Check Out' },
+    { key: 'price', label: 'Price' },
+    { key: 'totalPrice', label: 'Total Price' },
+    { key: 'roomType', label: 'Room Type' },
+    { key: 'vehicleType', label: 'Vehicle Type' },
+    { key: 'pickupLocation', label: 'Pickup Location' },
+    { key: 'dropoffLocation', label: 'Dropoff Location' },
+  ];
+
+  return (
+    <View>
+      {commonFields.map(({ key, label }) => {
+        if (serviceData[key] !== undefined && serviceData[key] !== null) {
+          let value = serviceData[key];
+          
+          // Format dates
+          if (key.includes('Date') || key.includes('checkIn') || key.includes('checkOut')) {
+            try {
+              value = new Date(value).toLocaleDateString();
+            } catch (e) {
+              // Keep original value if date parsing fails
+            }
+          }
+          
+          // Format duration
+          if (key === 'duration' && typeof value === 'number') {
+            value = `${value} days`;
+          }
+          
+          // Format price fields
+          if (key.includes('price') || key.includes('Price')) {
+            if (typeof value === 'number') {
+              value = `₹${value.toFixed(2)}`;
+            }
+          }
+          
+          return (
+            <InfoRow key={key} label={label} value={String(value)} />
+          );
+        }
+        return null;
+      })}
+      
+      {/* Handle nested objects or arrays in serviceData */}
+      {Object.entries(serviceData).map(([key, value]) => {
+        if (typeof value === 'object' && value !== null && !commonFields.find(f => f.key === key)) {
+          return (
+            <InfoRow 
+              key={key} 
+              label={key.charAt(0).toUpperCase() + key.slice(1)} 
+              value={JSON.stringify(value)} 
+            />
+          );
+        }
+        return null;
+      })}
+    </View>
+  );
+};
 
 export default async (booking: any) => {
   return await renderToStream(
