@@ -123,6 +123,23 @@ services:
     networks:
       - app-network
 
+  wishlist-service:
+    build:
+      context: .
+      dockerfile: apps/wishlist-service/Dockerfile
+      args:
+        DATABASE_URL: ${DATABASE_URL}
+    env_file:
+      - ./apps/wishlist-service/.env
+    container_name: wishlist-service
+    ports:
+      - "5008:5008"
+    depends_on:
+      - rabbitmq
+      - postgres
+    networks:
+      - app-network    
+
   api-gateway:
     build:
       context: .

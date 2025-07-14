@@ -4,33 +4,33 @@ import { ApiError } from "@repo/utils/ApiError";
 
 export const deserializeUser =
   (excludedFields: string[] = [], publicKey: string) =>
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      let token = req.headers.authorization?.startsWith("Bearer")
-        ? req.headers.authorization.split(" ")[1]
-        : null;
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        let token = req.headers.authorization?.startsWith("Bearer")
+          ? req.headers.authorization.split(" ")[1]
+          : null;
 
-      if (!token) {
-        return next(new ApiError(401, "You are not logged in"));
+        if (!token) {
+          return next(new ApiError(401, "You are not logged in"));
+        }
+
+        const decoded = verifyJwt<{ sub: string, role: string }>(token, publicKey);
+        console.log("Decoded JWT:", decoded);
+
+        if (!decoded || !decoded.sub || !decoded.role) {
+          return next(new ApiError(401, "Invalid token"));
+        }
+
+        res.locals.user = {
+          id: decoded.sub,
+          role: decoded.role,
+        };
+
+        next();
+      } catch (err) {
+        next(err);
       }
-
-      const decoded = verifyJwt<{ sub: string, role: string }>(token, publicKey);
-      console.log("Decoded JWT:", decoded);
-
-      if (!decoded || !decoded.sub || !decoded.role) {
-        return next(new ApiError(401, "Invalid token"));
-      }
-
-      res.locals.user = {
-        id: decoded.sub,
-        role: decoded.role,
-      };
-
-      next();
-    } catch (err) {
-      next(err);
-    }
-  };
+    };
 
 export const requireUser = (
   req: Request,

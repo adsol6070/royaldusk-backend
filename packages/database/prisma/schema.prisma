@@ -35,7 +35,7 @@ model User {
 
   blogs               Blog[]
   bookings            Booking[]
-
+  wishlists           WishlistItem[] 
 
   @@unique([email, verificationCode, passwordResetToken])
 }
@@ -157,6 +157,7 @@ model Package {
   itineraries         PackageItineraryOnPackage[]
   services            PackageServiceOnPackage[]
   enquiries           Enquiry[]
+  wishlists           WishlistItem[]
 
   tag                 PackageTag @default(Regular)
 }
@@ -342,6 +343,8 @@ model Tour {
   locationId  String
   location    Location        @relation(fields: [locationId], references: [id])
 
+  wishlists           WishlistItem[]
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -372,4 +375,48 @@ model ContactMessage {
   message     String   @db.Text
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// Wishlist Model - integrates with existing Package and Tour models
+model WishlistItem {
+  id          String            @id @default(uuid())
+  userId      String
+  itemType    WishlistItemType
+  packageId   String?
+  tourId      String?
+  notes       String?           @db.Text  // User's personal notes about the item
+  priority    WishlistPriority  @default(Medium)
+  isNotified  Boolean           @default(false)  // For price drop notifications
+
+   // Additional tracking fields
+  notificationsSent Int           @default(0)     // Track how many notifications sent
+  lastViewedAt      DateTime?                     // Track when user last viewed the item
+  priceWhenAdded    Decimal?      @db.Decimal(10, 2)  // Track original price for comparison
+
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package     Package?          @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  tour        Tour?             @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  // Constraints to ensure data integrity
+  @@unique([userId, packageId], name: "unique_user_package")
+  @@unique([userId, tourId], name: "unique_user_tour")
+  @@index([userId, itemType])
+  @@index([userId, createdAt])
+  @@index([userId, lastViewedAt]) 
+  @@map("wishlist_items")
+}
+
+enum WishlistItemType {
+  Package
+  Tour
+}
+
+enum WishlistPriority {
+  Low
+  Medium
+  High
 }
