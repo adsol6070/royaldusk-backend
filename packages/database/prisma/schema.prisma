@@ -16,7 +16,7 @@ datasource db {
 
 model User {
   id                  String   @id @default(uuid())
-  name                String   @db.VarChar(255)
+  name                String?  @db.VarChar(255)
   email               String   @unique
   verified            Boolean? @default(false)
 
@@ -30,14 +30,51 @@ model User {
   passwordResetToken  String?
   passwordResetAt     DateTime?
 
+  profile_completed   Boolean  @default(false)
+  provider            String   @db.VarChar(20) @default("email")
+  provider_id         String?  @db.VarChar(255)
+  phone               String?  @db.VarChar(20)
+
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
   blogs               Blog[]
   bookings            Booking[]
-  wishlists           WishlistItem[] 
+  wishlists           WishlistItem[]
+  refreshTokens       RefreshToken[] 
 
   @@unique([email, verificationCode, passwordResetToken])
+}
+
+model OtpVerification {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  email      String   @db.VarChar(255)
+  otp        String   @db.VarChar(6)
+  type       OtpType  @default(email)
+  expires_at DateTime
+  verified   Boolean  @default(false)
+  created_at DateTime @default(now())
+
+  @@index([email, type], name: "idx_email_type")
+  @@index([expires_at], name: "idx_expires_at")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  user_id    String   @db.VarChar(36)
+  token_hash String   @db.VarChar(255)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], name: "idx_user_id")
+  @@index([token_hash], name: "idx_token_hash")
+}
+
+enum OtpType {
+  email
+  phone
 }
 
 model Blog {

@@ -11,7 +11,7 @@ class RabbitMQ {
   private connection: AmqpConnection | null = null;
   private channel: AmqpChannel | null = null;
 
-  private readonly queues = ["email.verify", "email.reset"];
+  private readonly queues = ["email.verify", "email.reset", "email.otp"];
 
   async connect() {
     try {
