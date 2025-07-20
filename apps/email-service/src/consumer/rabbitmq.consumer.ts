@@ -16,7 +16,7 @@ class RabbitMQService {
   MAX_RETRIES: number;
   RETRY_DELAY: number;
 
-  queues = ["email.verify", "email.reset", "email.otp", "email.failed"];
+  queues = ["email.verify", "email.reset", "email.otp", "email.failed", "email.two-factor", "email.admin-invitation"];
 
   constructor() {
     this.connection = null;

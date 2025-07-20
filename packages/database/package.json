@@ -9,11 +9,17 @@
     "generate": "prisma generate",
     "prebuild": "npm run generate",
     "predev": "npm run generate",
-    "build": "tsc"
+    "build": "tsc",
+    "create-super-admin": "node dist/create-super-admin.js"
   },
   "devDependencies": {
     "@repo/typescript-config": "*",
+    "@types/bcryptjs": "^2.4.6",
     "prisma": "^6.7.0",
+    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2"
   }
 }
