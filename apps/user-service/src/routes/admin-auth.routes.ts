@@ -1,32 +1,39 @@
 import { Router } from "express";
 import adminAuthController from "../controllers/admin-auth.controller";
 import {
-    validateAdminRegistrationInit,
-    validateAdminRegistrationComplete,
-    validateAdminLogin,
-    validateTwoFactorAuth,
-    validateAdminRoleUpdate,
-    validateAdminProfileUpdate,
-    validateRefreshToken
+  validateAdminRegistrationInit,
+  validateAdminRegistrationComplete,
+  validateAdminLogin,
+  validateTwoFactorAuth,
+  validateAdminRoleUpdate,
+  validateAdminProfileUpdate,
+  validateRefreshToken,
 } from "../validations/admin-auth.validation";
 import { validateRequest } from "../middlewares/validateRequest";
-import { requireSuperAdmin, requireAdmin, validateAdminAuth } from "../middlewares/admin-auth.middleware";
+import {
+  requireSuperAdmin,
+  requireAdmin,
+  validateAdminAuth,
+} from "../middlewares/admin-auth.middleware";
 import { deserializeUser } from "@repo/auth-middleware";
 import config from "config";
-import { adminRateLimit, sensitiveActionRateLimit } from "../middlewares/rateLimit";
+import {
+  adminRateLimit,
+  sensitiveActionRateLimit,
+} from "../middlewares/rateLimit";
 
 const router = Router();
 
 const excludedFields = [
-    "password",
-    "verificationCode",
-    "passwordResetAt",
-    "passwordResetToken",
+  "password",
+  "verificationCode",
+  "passwordResetAt",
+  "passwordResetToken",
 ];
 
 const publicKey = Buffer.from(
-    config.get<string>("accessTokenPublicKey"),
-    "base64"
+  config.get<string>("accessTokenPublicKey"),
+  "base64"
 ).toString("ascii");
 
 // ==================== ADMIN REGISTRATION ====================
@@ -36,13 +43,13 @@ const publicKey = Buffer.from(
  * Super Admin initiates admin registration
  */
 router.post(
-    "/invite",
-    adminRateLimit,
-    deserializeUser(excludedFields, publicKey),
-    requireSuperAdmin,
-    validateAdminRegistrationInit,
-    validateRequest,
-    adminAuthController.initiateAdminRegistration
+  "/invite",
+  adminRateLimit,
+  deserializeUser(excludedFields, publicKey),
+  requireSuperAdmin,
+  validateAdminRegistrationInit,
+  validateRequest,
+  adminAuthController.initiateAdminRegistration
 );
 
 /**
@@ -50,11 +57,11 @@ router.post(
  * Complete admin registration with invitation token
  */
 router.post(
-    "/complete-registration",
-    adminRateLimit,
-    validateAdminRegistrationComplete,
-    validateRequest,
-    adminAuthController.completeAdminRegistration
+  "/complete-registration",
+  adminRateLimit,
+  validateAdminRegistrationComplete,
+  validateRequest,
+  adminAuthController.completeAdminRegistration
 );
 
 // ==================== ADMIN LOGIN ====================
@@ -64,11 +71,11 @@ router.post(
  * Admin email/password login
  */
 router.post(
-    "/login",
-    adminRateLimit,
-    validateAdminLogin,
-    validateRequest,
-    adminAuthController.adminLogin
+  "/login",
+  adminRateLimit,
+  validateAdminLogin,
+  validateRequest,
+  adminAuthController.adminLogin
 );
 
 /**
@@ -76,11 +83,11 @@ router.post(
  * Verify 2FA code during login
  */
 router.post(
-    "/verify-2fa",
-    adminRateLimit,
-    validateTwoFactorAuth,
-    validateRequest,
-    adminAuthController.verify2FA
+  "/verify-2fa",
+  adminRateLimit,
+  validateTwoFactorAuth,
+  validateRequest,
+  adminAuthController.verify2FA
 );
 
 // ==================== ADMIN MANAGEMENT ====================
@@ -90,10 +97,10 @@ router.post(
  * Get all admin users (Super Admin only)
  */
 router.get(
-    "/admins",
-    deserializeUser(excludedFields, publicKey),
-    requireSuperAdmin,
-    adminAuthController.getAllAdmins
+  "/admins",
+  deserializeUser(excludedFields, publicKey),
+  requireSuperAdmin,
+  adminAuthController.getAllAdmins
 );
 
 /**
@@ -101,13 +108,13 @@ router.get(
  * Update admin role (Super Admin only)
  */
 router.put(
-    "/admins/role",
-    sensitiveActionRateLimit,
-    deserializeUser(excludedFields, publicKey),
-    requireSuperAdmin,
-    validateAdminRoleUpdate,
-    validateRequest,
-    adminAuthController.updateAdminRole
+  "/admins/role",
+  sensitiveActionRateLimit,
+  deserializeUser(excludedFields, publicKey),
+  requireSuperAdmin,
+  validateAdminRoleUpdate,
+  validateRequest,
+  adminAuthController.updateAdminRole
 );
 
 /**
@@ -115,11 +122,11 @@ router.put(
  * Deactivate admin account (Super Admin only)
  */
 router.delete(
-    "/admins/:adminId",
-    sensitiveActionRateLimit,
-    deserializeUser(excludedFields, publicKey),
-    requireSuperAdmin,
-    adminAuthController.deactivateAdmin
+  "/admins/:adminId",
+  sensitiveActionRateLimit,
+  deserializeUser(excludedFields, publicKey),
+  requireSuperAdmin,
+  adminAuthController.deactivateAdmin
 );
 
 // ==================== ADMIN PROFILE ====================
@@ -129,10 +136,10 @@ router.delete(
  * Get admin profile
  */
 router.get(
-    "/profile",
-    deserializeUser(excludedFields, publicKey),
-    requireAdmin,
-    adminAuthController.getAdminProfile
+  "/profile",
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  adminAuthController.getAdminProfile
 );
 
 /**
@@ -140,12 +147,12 @@ router.get(
  * Update admin profile
  */
 router.put(
-    "/profile",
-    deserializeUser(excludedFields, publicKey),
-    requireAdmin,
-    validateAdminProfileUpdate,
-    validateRequest,
-    adminAuthController.updateAdminProfile
+  "/profile",
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  validateAdminProfileUpdate,
+  validateRequest,
+  adminAuthController.updateAdminProfile
 );
 
 /**
@@ -153,10 +160,10 @@ router.put(
  * Enable two-factor authentication
  */
 router.post(
-    "/enable-2fa",
-    deserializeUser(excludedFields, publicKey),
-    requireAdmin,
-    adminAuthController.enableTwoFactorAuth
+  "/enable-2fa",
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  adminAuthController.enableTwoFactorAuth
 );
 
 /**
@@ -164,13 +171,13 @@ router.post(
  * Disable two-factor authentication
  */
 router.post(
-    "/disable-2fa",
-    sensitiveActionRateLimit,
-    deserializeUser(excludedFields, publicKey),
-    requireAdmin,
-    validateTwoFactorAuth, // Require 2FA verification to disable
-    validateRequest,
-    adminAuthController.disableTwoFactorAuth
+  "/disable-2fa",
+  sensitiveActionRateLimit,
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  validateTwoFactorAuth, // Require 2FA verification to disable
+  validateRequest,
+  adminAuthController.disableTwoFactorAuth
 );
 
 // ==================== ADMIN DASHBOARD STATS ====================
@@ -180,10 +187,10 @@ router.post(
  * Get admin dashboard statistics
  */
 router.get(
-    "/stats",
-    deserializeUser(excludedFields, publicKey),
-    requireAdmin,
-    adminAuthController.getAdminStats
+  "/stats",
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  adminAuthController.getAdminStats
 );
 
 /**
@@ -191,10 +198,10 @@ router.get(
  * Get admin activity logs
  */
 router.get(
-    "/activity-logs",
-    deserializeUser(excludedFields, publicKey),
-    requireAdmin,
-    adminAuthController.getActivityLogs
+  "/activity-logs",
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  adminAuthController.getActivityLogs
 );
 
 // ==================== TOKEN MANAGEMENT ====================
@@ -204,10 +211,10 @@ router.get(
  * Refresh admin tokens
  */
 router.post(
-    "/refresh",
-    validateRefreshToken,
-    validateRequest,
-    adminAuthController.refreshAdminTokens
+  "/refresh",
+  validateRefreshToken,
+  validateRequest,
+  adminAuthController.refreshAdminTokens
 );
 
 /**
@@ -215,10 +222,10 @@ router.post(
  * Admin logout
  */
 router.post(
-    "/logout",
-    deserializeUser(excludedFields, publicKey),
-    requireAdmin,
-    adminAuthController.adminLogout
+  "/logout",
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  adminAuthController.adminLogout
 );
 
 /**
@@ -226,10 +233,21 @@ router.post(
  * Logout from all devices
  */
 router.post(
-    "/logout-all",
-    deserializeUser(excludedFields, publicKey),
-    requireAdmin,
-    adminAuthController.logoutAllDevices
+  "/logout-all",
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  adminAuthController.logoutAllDevices
+);
+
+/**
+ * GET /admin/auth/authors
+ * Get all admin users for blog author selection (Admin+ only)
+ */
+router.get(
+  "/authors",
+  deserializeUser(excludedFields, publicKey),
+  requireAdmin,
+  adminAuthController.getBlogAuthors
 );
 
 export default router;
