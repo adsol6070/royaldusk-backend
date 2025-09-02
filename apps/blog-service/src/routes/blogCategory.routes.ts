@@ -29,7 +29,7 @@ router.post(
   "/",
   deserializeUser(excludedFields, publicKey),
   requireUser,
-  requireRole(["admin"]),
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
   validateCreateCategory,
   validateRequest,
   blogCategoryController.createCategory
@@ -39,7 +39,7 @@ router.patch(
   "/:id",
   deserializeUser(excludedFields, publicKey),
   requireUser,
-  requireRole(["admin"]),
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
   validateIDParam,
   validateUpdateCategory,
   validateRequest,
@@ -50,7 +50,7 @@ router.delete(
   "/:id",
   deserializeUser(excludedFields, publicKey),
   requireUser,
-  requireRole(["admin"]),
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
   validateIDParam,
   validateRequest,
   blogCategoryController.deleteCategory

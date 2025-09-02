@@ -4,14 +4,26 @@ import {
   validateNewsletterSubscribe,
   validateUpdateSubscription,
 } from "../validations/newsletter.validation";
-import { requireUser, requireRole, deserializeUser } from "@repo/auth-middleware";
+import {
+  requireUser,
+  requireRole,
+  deserializeUser,
+} from "@repo/auth-middleware";
 import config from "config";
 
 const router = express.Router();
 
 // Public
-router.post("/subscribe", validateNewsletterSubscribe, newsletterController.subscribe);
-router.post("/update", validateUpdateSubscription, newsletterController.updateSubscription);
+router.post(
+  "/subscribe",
+  validateNewsletterSubscribe,
+  newsletterController.subscribe
+);
+router.post(
+  "/update",
+  validateUpdateSubscription,
+  newsletterController.updateSubscription
+);
 
 // Admin
 const excludedFields = [
@@ -28,8 +40,20 @@ const publicKey = Buffer.from(
 
 router.use(deserializeUser(excludedFields, publicKey), requireUser);
 
-router.get("/", requireRole(["admin"]), newsletterController.getAll);
-router.get("/:id", requireRole(["admin"]), newsletterController.getById);
-router.delete("/:id", requireRole(["admin"]), newsletterController.deleteById);
+router.get(
+  "/",
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
+  newsletterController.getAll
+);
+router.get(
+  "/:id",
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
+  newsletterController.getById
+);
+router.delete(
+  "/:id",
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
+  newsletterController.deleteById
+);
 
 export default router;

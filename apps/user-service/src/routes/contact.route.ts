@@ -1,7 +1,11 @@
 import express from "express";
 import { contactController } from "../controllers";
 import { validateContactMessage } from "../validations/contact.validation";
-import { requireUser, requireRole, deserializeUser } from "@repo/auth-middleware";
+import {
+  requireUser,
+  requireRole,
+  deserializeUser,
+} from "@repo/auth-middleware";
 import config from "config";
 
 const router = express.Router();
@@ -22,9 +26,20 @@ const publicKey = Buffer.from(
 
 router.use(deserializeUser(excludedFields, publicKey), requireUser);
 
-router.get("/", requireRole(["admin"]), contactController.getAll);
-router.get("/:id", requireRole(["admin"]), contactController.getById);
-router.delete("/:id", requireRole(["admin"]), contactController.deleteById);
+router.get(
+  "/",
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
+  contactController.getAll
+);
+router.get(
+  "/:id",
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
+  contactController.getById
+);
+router.delete(
+  "/:id",
+  requireRole(["SUPER_ADMIN", "ADMIN"]),
+  contactController.deleteById
+);
 
 export default router;
-

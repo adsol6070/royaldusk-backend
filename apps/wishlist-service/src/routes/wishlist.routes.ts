@@ -46,7 +46,7 @@ router.get('/analytics',
 
 // Global analytics (admin only)
 router.get('/analytics/global',
-    requireRole(['admin']),
+    requireRole(['SUPER_ADMIN','ADMIN']),
     WishlistController.getGlobalAnalytics
 );                                                                         // GET /api/v1/wishlist/analytics/global
 
@@ -82,7 +82,7 @@ router.patch('/bulk/priority',
 
 // Internal/Admin operations (require admin role)
 router.patch('/notifications/sent',
-    requireRole(['admin']),
+    requireRole(['SUPER_ADMIN','ADMIN']),
     validateMarkNotificationSent,
     WishlistController.markNotificationSent
 );                                                                         // PATCH /api/v1/wishlist/notifications/sent

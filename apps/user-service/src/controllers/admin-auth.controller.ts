@@ -345,7 +345,7 @@ const adminAuthController = {
      */
     getAllAdmins: async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
-            const requesterId = req.user?.id;
+            const requesterId = req.admin?.id;
 
             // Verify requester is super admin
             const requester = await UserService.findUniqueUser(
