@@ -16,6 +16,8 @@ export const validateCreateTour = [
     .isLength({ min: 10 })
     .withMessage("Description must be at least 10 characters"),
 
+  body("duration").isString().withMessage("Duration must be a string"),
+
   body("tourAvailability")
     .isIn(["Available", "SoldOut", "ComingSoon"])
     .withMessage("Availability must be one of: Available, SoldOut, ComingSoon"),
@@ -56,6 +58,8 @@ export const validateUpdateTour = [
     .isString()
     .isLength({ min: 10 })
     .withMessage("Description must be at least 10 characters"),
+
+  body("duration").isString().withMessage("Duration must be a string"),
 
   body("price")
     .optional()
