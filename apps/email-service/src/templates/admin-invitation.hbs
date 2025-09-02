@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard Invitation - Royal Dusk</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+        }
+        
+        .invitation-box {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .invitation-title {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .role-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: #ffffff;
+            color: #f5576c;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .info-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .info-title {
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .info-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .info-list li {
+            padding: 5px 0;
+            position: relative;
+            padding-left: 20px;
+        }
+        
+        .info-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .expiry-notice {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .security-note {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+        
+        .footer {
+            background: #2c3e50;
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .footer-text {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .contact-info {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        
+        .divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 30px 0;
+        }
+        
+        @media (max-width: 600px) {
+            .email-container {
+                margin: 0;
+                box-shadow: none;
+            }
+            
+            .header, .content, .footer {
+                padding: 20px;
+            }
+            
+            .invitation-box {
+                padding: 20px;
+            }
+            
+            .cta-button {
+                padding: 12px 25px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">Royal Dusk</div>
+            <div class="subtitle">Travel & Tourism Management</div>
+        </div>
+        
+        <!-- Content -->
+        <div class="content">
+            <div class="greeting">Hello there!</div>
+            
+            <p>You have been invited by <strong>{{inviterName}}</strong> to join the Royal Dusk Admin Dashboard as a team member.</p>
+            
+            <!-- Invitation Box -->
+            <div class="invitation-box">
+                <div class="invitation-title">🎉 Admin Access Invitation</div>
+                <div class="role-badge">{{role}}</div>
+                <p style="margin: 15px 0;">You're being granted administrative access to our travel management platform.</p>
+                <a href="{{registrationLink}}" class="cta-button">Accept Invitation & Setup Account</a>
+            </div>
+            
+            <!-- Information Section -->
+            <div class="info-section">
+                <div class="info-title">What's Next?</div>
+                <ul class="info-list">
+                    <li>Click the invitation button above to get started</li>
+                    <li>Create a secure password for your admin account</li>
+                    <li>Complete your profile information</li>
+                    <li>Access the admin dashboard and start managing</li>
+                </ul>
+            </div>
+            
+            <!-- Expiry Notice -->
+            <div class="expiry-notice">
+                <strong>⏰ Important:</strong> This invitation expires in <strong>{{expiresIn}} hours</strong>. Please complete your registration before then.
+            </div>
+            
+            <div class="divider"></div>
+            
+            <!-- Role Information -->
+            <div class="info-section">
+                <div class="info-title">Your Role: {{role}}</div>
+                {{#if (eq role "ADMIN")}}
+                <p>As an <strong>Admin</strong>, you'll have access to:</p>
+                <ul class="info-list">
+                    <li>User management and customer support</li>
+                    <li>Booking and payment management</li>
+                    <li>Content management (packages, tours, blogs)</li>
+                    <li>Analytics and reporting tools</li>
+                    <li>System configuration access</li>
+                </ul>
+                {{/if}}
+                
+                {{#if (eq role "MODERATOR")}}
+                <p>As a <strong>Moderator</strong>, you'll have access to:</p>
+                <ul class="info-list">
+                    <li>Content review and moderation</li>
+                    <li>Customer support and enquiry management</li>
+                    <li>Basic reporting and analytics</li>
+                    <li>User activity monitoring</li>
+                </ul>
+                {{/if}}
+            </div>
+            
+            <!-- Security Note -->
+            <div class="security-note">
+                <strong>🔒 Security Notice:</strong> If you didn't expect this invitation or believe it was sent in error, please ignore this email and contact our support team immediately.
+            </div>
+            
+            <div class="divider"></div>
+            
+            <p>If you have any questions about your new role or need assistance with the setup process, don't hesitate to reach out to our team.</p>
+            
+            <p style="margin-top: 20px;">Welcome to the Royal Dusk team!</p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-text">Royal Dusk Travel & Tourism</div>
+            <div class="contact-info">
+                Need help? Contact us at support@royaldusk.com<br>
+                This is an automated message, please do not reply to this email.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

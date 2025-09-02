@@ -22,7 +22,7 @@ class EmailFailedConsumerService {
           const failedEmailData = JSON.parse(msg.content.toString());
           console.log("Received failed email message:", failedEmailData);
 
-          await UserService.rollbackUserAction(failedEmailData);
+          // await UserService.rollbackUserAction(failedEmailData);
 
           channel?.ack(msg);
         } catch (error) {

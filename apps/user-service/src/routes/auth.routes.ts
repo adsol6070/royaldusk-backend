@@ -1,13 +1,18 @@
 import { Router } from "express";
 import { authController } from "../controllers";
 import {
-  validateLogin,
-  validateRegistration,
-  validateVerifyEmail,
-} from "../validations/user.validation";
+  validateSendOTP,
+  validateVerifyOTP,
+  validateCompleteProfile,
+  validateGoogleLogin,
+  validateAppleLogin,
+  validateRefreshToken,
+} from "../validations/auth.validation";
 import { validateRequest } from "../middlewares/validateRequest";
+import { validateTemporaryToken } from "../middlewares/auth.middleware";
 import { deserializeUser, requireUser } from "@repo/auth-middleware";
 import config from "config";
+import { otpRateLimit, verificationRateLimit } from "../middlewares/rateLimit";
 
 const router = Router();
 
@@ -24,14 +29,53 @@ const publicKey = Buffer.from(
   "base64"
 ).toString("ascii");
 
+// ==================== SIMPLIFIED EMAIL AUTH ====================
 router.post(
-  "/register",
-  validateRegistration,
+  "/send-otp",
+  otpRateLimit,
+  validateSendOTP,
   validateRequest,
-  authController.register
+  authController.sendOTP
 );
 
-router.post("/login", validateLogin, validateRequest, authController.login);
+router.post(
+  "/verify-otp",
+  verificationRateLimit,
+  validateVerifyOTP,
+  validateRequest,
+  authController.verifyOTP
+);
+
+router.post(
+  "/complete-profile",
+  validateCompleteProfile,
+  validateRequest,
+  // validateTemporaryToken,
+  authController.completeProfile
+);
+
+// ==================== SOCIAL LOGIN ====================
+router.post(
+  "/google",
+  validateGoogleLogin,
+  validateRequest,
+  authController.googleLogin
+);
+
+router.post(
+  "/apple",
+  validateAppleLogin,
+  validateRequest,
+  authController.appleLogin
+);
+
+// ==================== TOKEN MANAGEMENT ====================
+router.post(
+  "/refresh",
+  validateRefreshToken,
+  validateRequest,
+  authController.refreshToken
+);
 
 router.post(
   "/logout",
@@ -40,22 +84,12 @@ router.post(
   authController.logout
 );
 
-router.post(
-  "/verify-email",
-  validateVerifyEmail,
-  validateRequest,
-  authController.verifyEmail
+// ==================== USER PROFILE ====================
+router.get(
+  "/profile",
+  deserializeUser(excludedFields, publicKey),
+  requireUser,
+  authController.getProfile
 );
-
-router.post("/forgot-password", authController.forgotPassword);
-
-router.post("/reset-password", authController.resetPassword);
-
-router.post(
-  "/resend-verification-email",
-  authController.resendVerificationEmail
-);
-
-router.post("/google", authController.googleLogin);
 
 export default router;

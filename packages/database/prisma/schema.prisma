@@ -14,9 +14,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Replace your existing User model with this complete version
+
 model User {
   id                  String   @id @default(uuid())
-  name                String   @db.VarChar(255)
+  name                String?  @db.VarChar(255)
   email               String   @unique
   verified            Boolean? @default(false)
 
@@ -30,14 +32,81 @@ model User {
   passwordResetToken  String?
   passwordResetAt     DateTime?
 
+  profile_completed   Boolean  @default(false)
+  provider            String   @db.VarChar(20) @default("email")
+  provider_id         String?  @db.VarChar(255)
+  phone               String?  @db.VarChar(20)
+
+  // ADD: New admin-related fields
+  two_factor_enabled  Boolean  @default(false)
+  created_by          String?  // Who created this admin account
+  deactivated_at      DateTime?
+  deactivated_by      String?
+  last_login          DateTime?
+  last_activity       DateTime?
+  login_attempts      Int      @default(0)
+  locked_until        DateTime?
+
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
+  // Existing relations
   blogs               Blog[]
   bookings            Booking[]
-  wishlists           WishlistItem[] 
+  wishlists           WishlistItem[]
+  refreshTokens       RefreshToken[] 
+
+  // ADD: All missing admin relations
+  adminActions        AdminActionLog[] @relation("AdminActions")
+  targetActions       AdminActionLog[] @relation("TargetUserActions")
+  createdAdmins       User[]           @relation("AdminCreator")
+  creator             User?            @relation("AdminCreator", fields: [created_by], references: [id])
+  deactivatedAdmins   User[]           @relation("AdminDeactivator")
+  deactivator         User?            @relation("AdminDeactivator", fields: [deactivated_by], references: [id])
+  adminInvitations    AdminInvitation[] @relation("InvitedBy")
+  adminSessions       AdminSession[]   @relation("AdminSessions")
+  updatedSettings     AdminSettings[]  @relation("SettingsUpdater")
+  adminNotifications  AdminNotification[] @relation("AdminNotifications")
 
   @@unique([email, verificationCode, passwordResetToken])
+}
+
+model OtpVerification {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  email      String   @db.VarChar(255)
+  otp        String   @db.VarChar(6)
+  type       OtpType  @default(email)
+  expires_at DateTime
+  verified   Boolean  @default(false)
+  created_at DateTime @default(now())
+  
+  // ADD: Optional admin tracking
+  admin_id   String?  @db.VarChar(36)
+
+  @@index([email, type], name: "idx_email_type")
+  @@index([expires_at], name: "idx_expires_at")
+  @@index([admin_id], name: "idx_admin_id")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  user_id    String   @db.VarChar(36)
+  token_hash String   @db.VarChar(255)
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id], name: "idx_user_id")
+  @@index([token_hash], name: "idx_token_hash")
+}
+
+enum OtpType {
+  email
+  phone
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  TWO_FACTOR
 }
 
 model Blog {
@@ -276,6 +345,9 @@ enum ServiceType {
 enum RoleEnumType {
   user
   admin
+  ADMIN           
+  MODERATOR       
+  SUPER_ADMIN
 }
 
 model Payment {
@@ -420,4 +492,231 @@ enum WishlistPriority {
   Low
   Medium
   High
+}
+
+// Add these admin models to the end of your schema file
+
+// ==================== ADMIN SYSTEM MODELS ====================
+
+// Admin Action Audit Log
+model AdminActionLog {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  admin_id       String   @db.VarChar(36)
+  action         String   @db.VarChar(100)
+  target_user_id String?  @db.VarChar(36)
+  target_type    String?  @db.VarChar(50)  // 'user', 'package', 'booking', etc.
+  target_id      String?  @db.VarChar(36)  // ID of the target resource
+  details        Json?
+  ip_address     String?  @db.Inet
+  user_agent     String?  @db.Text
+  status         AdminActionStatus @default(SUCCESS)
+  error_message  String?  @db.Text
+  created_at     DateTime @default(now())
+  
+  // Relations
+  admin          User     @relation("AdminActions", fields: [admin_id], references: [id], onDelete: Cascade)
+  target_user    User?    @relation("TargetUserActions", fields: [target_user_id], references: [id])
+
+  @@index([admin_id], name: "idx_admin_actions_admin")
+  @@index([target_user_id], name: "idx_admin_actions_target")
+  @@index([action], name: "idx_admin_actions_action")
+  @@index([created_at], name: "idx_admin_actions_created")
+  @@index([target_type, target_id], name: "idx_admin_actions_target_resource")
+  @@map("admin_action_logs")
+}
+
+enum AdminActionStatus {
+  SUCCESS
+  FAILED
+  PENDING
+}
+
+// Admin Invitations Tracking
+model AdminInvitation {
+  id               String              @id @default(uuid()) @db.VarChar(36)
+  email            String              @db.VarChar(255)
+  role             RoleEnumType
+  invited_by       String              @db.VarChar(36)
+  token_hash       String              @db.VarChar(255)
+  status           AdminInvitationStatus @default(PENDING)
+  expires_at       DateTime
+  accepted_at      DateTime?
+  rejected_at      DateTime?
+  notes            String?             @db.Text
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @updatedAt
+
+  // Relations
+  inviter          User                @relation("InvitedBy", fields: [invited_by], references: [id])
+
+  @@index([email], name: "idx_admin_invitations_email")
+  @@index([invited_by], name: "idx_admin_invitations_inviter")
+  @@index([status], name: "idx_admin_invitations_status")
+  @@index([expires_at], name: "idx_admin_invitations_expires")
+  @@map("admin_invitations")
+}
+
+enum AdminInvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  REVOKED
+}
+
+// Admin Sessions Tracking
+model AdminSession {
+  id               String   @id @default(uuid()) @db.VarChar(36)
+  admin_id         String   @db.VarChar(36)
+  session_token    String   @unique @db.VarChar(255)
+  device_info      Json?    // Browser, OS, etc.
+  ip_address       String   @db.Inet
+  location         String?  @db.VarChar(100)
+  last_activity    DateTime @default(now())
+  expires_at       DateTime
+  is_active        Boolean  @default(true)
+  logout_reason    String?  @db.VarChar(100) // 'manual', 'timeout', 'force_logout'
+  created_at       DateTime @default(now())
+
+  // Relations
+  admin            User     @relation("AdminSessions", fields: [admin_id], references: [id], onDelete: Cascade)
+
+  @@index([admin_id], name: "idx_admin_sessions_admin")
+  @@index([session_token], name: "idx_admin_sessions_token")
+  @@index([expires_at], name: "idx_admin_sessions_expires")
+  @@index([is_active], name: "idx_admin_sessions_active")
+  @@map("admin_sessions")
+}
+
+// Admin Settings/Configuration
+model AdminSettings {
+  id                      String   @id @default(uuid()) @db.VarChar(36)
+  key                     String   @unique @db.VarChar(100)
+  value                   Json
+  description             String?  @db.Text
+  category                String   @db.VarChar(50)
+  is_system               Boolean  @default(false)
+  updated_by              String   @db.VarChar(36)
+  created_at              DateTime @default(now())
+  updated_at              DateTime @updatedAt
+
+  // Relations
+  updater                 User     @relation("SettingsUpdater", fields: [updated_by], references: [id])
+
+  @@index([category], name: "idx_admin_settings_category")
+  @@index([key], name: "idx_admin_settings_key")
+  @@map("admin_settings")
+}
+
+// Failed Login Attempts Tracking
+model LoginAttempt {
+  id             String          @id @default(uuid()) @db.VarChar(36)
+  email          String          @db.VarChar(255)
+  ip_address     String          @db.Inet
+  user_agent     String?         @db.Text
+  success        Boolean         @default(false)
+  failure_reason String?         @db.VarChar(100)
+  attempted_at   DateTime        @default(now())
+
+  @@index([email], name: "idx_login_attempts_email")
+  @@index([ip_address], name: "idx_login_attempts_ip")
+  @@index([attempted_at], name: "idx_login_attempts_time")
+  @@index([email, attempted_at], name: "idx_login_attempts_email_time")
+  @@map("login_attempts")
+}
+
+// Security Events Logging
+model SecurityEvent {
+  id             String            @id @default(uuid()) @db.VarChar(36)
+  event_type     SecurityEventType
+  severity       SecuritySeverity  @default(MEDIUM)
+  user_id        String?           @db.VarChar(36)
+  ip_address     String?           @db.Inet
+  user_agent     String?           @db.Text
+  description    String            @db.Text
+  metadata       Json?
+  resolved       Boolean           @default(false)
+  resolved_by    String?           @db.VarChar(36)
+  resolved_at    DateTime?
+  created_at     DateTime          @default(now())
+
+  @@index([event_type], name: "idx_security_events_type")
+  @@index([severity], name: "idx_security_events_severity")
+  @@index([user_id], name: "idx_security_events_user")
+  @@index([created_at], name: "idx_security_events_created")
+  @@index([resolved], name: "idx_security_events_resolved")
+  @@map("security_events")
+}
+
+enum SecurityEventType {
+  SUSPICIOUS_LOGIN
+  MULTIPLE_FAILED_LOGINS
+  ADMIN_PRIVILEGE_ESCALATION
+  UNAUTHORIZED_ACCESS_ATTEMPT
+  DATA_BREACH_ATTEMPT
+  UNUSUAL_ACTIVITY
+  ACCOUNT_COMPROMISE
+}
+
+enum SecuritySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// Admin Notifications/Alerts
+model AdminNotification {
+  id           String                    @id @default(uuid()) @db.VarChar(36)
+  admin_id     String                    @db.VarChar(36)
+  type         AdminNotificationType
+  title        String                    @db.VarChar(255)
+  message      String                    @db.Text
+  data         Json?
+  priority     NotificationPriority      @default(MEDIUM)
+  read         Boolean                   @default(false)
+  read_at      DateTime?
+  expires_at   DateTime?
+  created_at   DateTime                  @default(now())
+
+  // Relations
+  admin        User                      @relation("AdminNotifications", fields: [admin_id], references: [id], onDelete: Cascade)
+
+  @@index([admin_id], name: "idx_admin_notifications_admin")
+  @@index([type], name: "idx_admin_notifications_type")
+  @@index([read], name: "idx_admin_notifications_read")
+  @@index([created_at], name: "idx_admin_notifications_created")
+  @@map("admin_notifications")
+}
+
+enum AdminNotificationType {
+  SECURITY_ALERT
+  SYSTEM_UPDATE
+  USER_ACTIVITY
+  BOOKING_ALERT
+  PAYMENT_ISSUE
+  GENERAL
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// System Health Monitoring
+model SystemHealthLog {
+  id              String   @id @default(uuid()) @db.VarChar(36)
+  component       String   @db.VarChar(100)
+  status          String   @db.VarChar(50)
+  response_time   Int?     // milliseconds
+  error_message   String?  @db.Text
+  metadata        Json?
+  checked_at      DateTime @default(now())
+
+  @@index([component], name: "idx_system_health_component")
+  @@index([status], name: "idx_system_health_status")
+  @@index([checked_at], name: "idx_system_health_checked")
+  @@map("system_health_logs")
 }

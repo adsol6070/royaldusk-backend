@@ -11,7 +11,7 @@ class RabbitMQ {
   private connection: AmqpConnection | null = null;
   private channel: AmqpChannel | null = null;
 
-  private readonly queues = ["email.verify", "email.reset"];
+  private readonly queues = ["email.verify", "email.reset", "email.otp", "email.two-factor", "email.admin-invitation"];
 
   async connect() {
     try {
@@ -24,8 +24,8 @@ class RabbitMQ {
         try {
           console.log("Attempting to connect to RabbitMQ...");
           this.connection = await amqplib.connect(
-            `amqp://user:password@rabbitmq:5672`
-            // `amqp://user:password@localhost:5672`
+            // `amqp://user:password@rabbitmq:5672`
+            `amqp://user:password@localhost:5672`
           );
 
           this.channel = await this.connection.createChannel();

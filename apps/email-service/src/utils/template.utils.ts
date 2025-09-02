@@ -2,6 +2,9 @@ import fs from "fs";
 import path from "path";
 import handlebars from "handlebars";
 import { EmailTemplateData } from "../types/types";
+import helpers from "handlebars-helpers"
+
+helpers({ handlebars })
 
 export const compileTemplate = (
   templateName: string,
