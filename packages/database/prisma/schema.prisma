@@ -409,13 +409,14 @@ model Tour {
   tourAvailability        TourAvailability
   tag         TourTag @default(Regular)  
   imageUrl    String   @db.Text
+  duration    Int
   categoryId  String
   category    PackageCategory @relation(fields: [categoryId], references: [id])
 
   locationId  String
   location    Location        @relation(fields: [locationId], references: [id])
 
-  wishlists           WishlistItem[]
+  wishlists   WishlistItem[]
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

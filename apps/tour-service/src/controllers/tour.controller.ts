@@ -15,6 +15,7 @@ const createTour = async (req: Request, res: Response): Promise<void> => {
   const tourData = {
     ...req.body,
     price: parseFloat(req.body.price),
+    duration: parseInt(req.body.duration),
     imageUrl: image,
     createdAt: new Date(),
   };
@@ -68,6 +69,7 @@ const updateTour = async (
   const data: any = {
     ...req.body,
     price: parseFloat(req.body.price),
+    duration: Number(req.body.duration),
     updatedAt: new Date(),
   };
 
